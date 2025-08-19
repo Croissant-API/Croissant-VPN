@@ -1,3 +1,3 @@
-import { getVPNLists } from "./api/VPNGATE-getVpnList";
+import { getVpnList } from "./api/VPNGATE-getVpnList";
 
-export { getVPNLists };
+export { getVpnList };

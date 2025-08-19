@@ -2,7 +2,7 @@ const app = require('electron').app;
 const BrowserWindow = require('electron').BrowserWindow;
 const path = require('path');
 
-const { getVPNLists } = require('./api'); // Assuming you have an API module to handle backend logic
+const { getVpnList } = require('./api'); // Assuming you have an API module to handle backend logic
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
