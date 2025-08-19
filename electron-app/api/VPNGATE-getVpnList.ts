@@ -67,7 +67,3 @@ export const getVpnList = (): Promise<VpnListResult> => {
         req.end();
     });
 };
-
-export function getVPNLists() {
-    /* ... */
-}
