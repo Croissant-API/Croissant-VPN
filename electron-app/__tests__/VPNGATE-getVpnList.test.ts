@@ -1,4 +1,4 @@
-import { jest } from '@jest/globals';
+import { afterEach, describe, expect, it, jest } from '@jest/globals';
 import { EventEmitter } from 'events';
 import http from 'http';
 import { getVpnList } from '../api/VPNGATE-getVpnList';
