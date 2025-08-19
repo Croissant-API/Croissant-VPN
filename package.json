@@ -1,0 +1,27 @@
+{
+  "name": "croissant-vpn",
+  "version": "1.0.0",
+  "description": "An OpenVPN (and soon L2TP) wrapper, and OVPN configuration scraper to get a large panel of IPs for free. ",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Croissant-API/Croissant-VPN.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Croissant-API/Croissant-VPN/issues"
+  },
+  "homepage": "https://github.com/Croissant-API/Croissant-VPN#readme",
+  "dependencies": {
+    "electron": "^37.3.1",
+    "next": "^15.4.7",
+    "react": "^19.1.1",
+    "typescript": "^5.9.2"
+  }
+}
