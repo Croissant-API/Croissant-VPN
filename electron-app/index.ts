@@ -2,11 +2,12 @@ const app = require('electron').app;
 const BrowserWindow = require('electron').BrowserWindow;
 const path = require('path');
 
+const { getVPNLists } = require('./api'); // Assuming you have an API module to handle backend logic
+
 function createWindow() {
-  // Create the browser window.
   const mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: 600,
+    height: 800,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: true,
@@ -14,13 +15,8 @@ function createWindow() {
     },
   });
 
-  // Load the index.html of the app.
   mainWindow.loadFile('index.html');
-
-  // Open the DevTools.
   mainWindow.webContents.openDevTools();
 }
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
 app.whenReady().then(createWindow);
