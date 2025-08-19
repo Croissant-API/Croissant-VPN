@@ -31,6 +31,7 @@ describe('getVpnList', () => {
     });
 
     const result = await getVpnList();
+    console.log("result:", result);
     expect(result.servers.length).toBeGreaterThan(0);
     expect(result.countries['us']).toBe('CountryName');
   });
