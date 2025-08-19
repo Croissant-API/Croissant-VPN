@@ -38,14 +38,17 @@ describe('getVpnList', () => {
   it('rejects / returns empty when statusCode !== 200', async () => {
     const fakeRes = new EventEmitter() as unknown as http.IncomingMessage;
     (fakeRes as any).statusCode = 500;
+    const fakeReq = {
+      on: jest.fn(),
+      end: jest.fn(),
+    } as any;
+
     jest.spyOn(http, 'get').mockImplementation((url: string | URL, options?: any, callback?: (res: http.IncomingMessage) => void) => {
       const cb = typeof options === 'function' ? options : callback;
       process.nextTick(() => {
         if (cb) cb(fakeRes);
         fakeRes.emit('end');
       });
-      return fakeReq;
-    });
       return fakeReq;
     });
 
