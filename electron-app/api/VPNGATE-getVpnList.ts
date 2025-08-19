@@ -9,7 +9,7 @@ interface VpnListResult {
     countries: { [key: string]: string };
 }
 
-export const getVpnList = (): Promise<VpnListResult> => {
+export function getVpnList(): Promise<VpnListResult> {
     return new Promise((resolve, reject) => {
         const vpnGateApiUrl = "http://www.vpngate.net/api/iphone/";
         const req = http.get(vpnGateApiUrl, (res: http.IncomingMessage) => {
@@ -66,4 +66,4 @@ export const getVpnList = (): Promise<VpnListResult> => {
 
         req.end();
     });
-};
+}
