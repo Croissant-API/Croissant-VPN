@@ -1,6 +1,7 @@
 import { app, BrowserWindow } from 'electron';
 import path from 'path';
-// console.log(getVpnList); // For debugging, remove in production
+import { getVpnList } from './api/VPNGATE-getVpnList.js'; // Ensure this import matches the correct casing
+getVpnList().then(console.log); // For debugging, remove in production
 // const { webServer } = require('./webServer'); // Uncomment if you have a web server module
 import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
