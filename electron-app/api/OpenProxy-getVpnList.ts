@@ -2,15 +2,7 @@ import https from 'https';
 import { URL } from 'url';
 import { StringDecoder } from 'string_decoder';
 import querystring from 'querystring';
-
-// Optional parser dependency — install with `npm install cheerio`
-let cheerio: any;
-try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  cheerio = require('cheerio');
-} catch (err) {
-  cheerio = null;
-}
+import cheerio from 'cheerio';
 
 export interface OpenProxyEntry {
   ip: string;
