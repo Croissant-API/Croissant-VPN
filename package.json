@@ -2,15 +2,16 @@
   "name": "croissant-vpn",
   "version": "1.0.0",
   "description": "An OpenVPN (and soon L2TP) wrapper, and OVPN configuration scraper to get a large panel of IPs for free. ",
-  "main": "index.js",
+  "main": "electron-app/dist/index.js",
   "scripts": {
     "test": "jest --passWithNoTests",
-    "electron-start": "electron-forge start",
+    "electron-start": "npm run electron-transpile; electron-forge start electron-app/dist/index.js",
     "electron-package": "electron-forge package",
     "electron-make": "electron-forge make",
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "electron-transpile": "tsc --project electron-app/tsconfig.json"
   },
   "repository": {
     "type": "git",
