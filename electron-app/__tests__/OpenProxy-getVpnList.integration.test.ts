@@ -1,3 +1,4 @@
+import { describe, expect, it, jest } from '@jest/globals';
 import { getVpnList } from '../api/OpenProxy-getVpnList';
 
 describe('OpenProxy getVpnList - integration', () => {
