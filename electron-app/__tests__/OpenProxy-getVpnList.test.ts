@@ -2,6 +2,7 @@ import nock from 'nock';
 import fs from 'fs';
 import path from 'path';
 import { getVpnList } from '../api/OpenProxy-getVpnList';
+import { afterEach, describe, expect, it } from '@jest/globals';
 
 describe('OpenProxy getVpnList - unit', () => {
   afterEach(() => {
