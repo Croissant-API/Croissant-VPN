@@ -47,7 +47,18 @@ export function getVpnList(): Promise<VpnListResult> {
                             countries[values[6]?.toLowerCase() ?? ""] = values[5] ?? "";
                             const obj: VpnServer = {};
                             for (let j = 0; j < values.length; j++) {
-                                obj[headers[j]?.toLowerCase() ?? ""] = values[j]?.trim() ?? "";
+                                const excludeHeaders = [
+                                    "numvpnsessions",
+                                    "uptime",
+                                    "totalusers",
+                                    "totaltraffic",
+                                    "logtype",
+                                    "message"
+                                ];
+                                const headerKey = headers[j]?.toLowerCase() ?? "";
+                                if (!excludeHeaders.includes(headerKey)) {
+                                    obj[headerKey] = values[j]?.trim() ?? "";
+                                }
                             }
                             servers.push(obj);
                         });
