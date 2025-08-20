@@ -2,15 +2,17 @@
   "name": "croissant-vpn",
   "version": "1.0.0",
   "description": "An OpenVPN (and soon L2TP) wrapper, and OVPN configuration scraper to get a large panel of IPs for free. ",
-  "main": "index.js",
+  "main": "electron-app/dist/index.js",
   "scripts": {
     "test": "jest --passWithNoTests",
-    "electron-start": "electron-forge start",
+    "electron-start": "npm run electron-transpile; electron-forge start electron-app/dist/index.js",
     "electron-package": "electron-forge package",
     "electron-make": "electron-forge make",
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "electron-transpile": "tsc --project electron-app/tsconfig.json",
+    "build:preload": "tsc electron-app/src/preload.ts --outDir electron-app/dist"
   },
   "repository": {
     "type": "git",
@@ -25,15 +27,24 @@
   },
   "homepage": "https://github.com/Croissant-API/Croissant-VPN#readme",
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/material": "^7.3.1",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.7.0",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^13.5.0",
+<<<<<<< HEAD
     "cheerio": "^1.1.0",
+=======
+    "cheerio": "^1.1.2",
+>>>>>>> 241bfcd717f9b4f8eefbae94e9a1fb5e52db07d3
     "electron-squirrel-startup": "^1.0.1",
     "http": "^0.0.1-security",
+    "leaflet": "^1.9.4",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
+    "react-leaflet": "^5.0.0",
     "ts-node": "^10.9.2"
   },
   "devDependencies": {
