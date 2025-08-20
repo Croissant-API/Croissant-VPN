@@ -1,93 +1,65 @@
-import { execSync, spawnSync } from "child_process";
-import { existsSync, mkdtempSync, readFileSync, writeFileSync, unlinkSync, readdirSync } from "fs";
-import { tmpdir } from "os";
-import { join, resolve } from "path";
+import { spawnSync } from 'child_process';
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
+import { dirname, join, basename, extname } from 'path';
 
-// Constants
-const REPO_DIR = "auto-ovpn";
-const REPO_URL = "https://github.com/9xN/auto-ovpn";
+/**
+ * Convert an OpenVPN config string from legacy "cipher" to new "data-ciphers" lines.
+ * It replaces lines starting with optional whitespace + cipher with data-ciphers preserving the rest of the line.
+ */
+export function convertOvpnConfig(config: string): string {
+    return config.replace(/^\s*cipher\s+(.+)$/gim, 'data-ciphers $1');
+}
 
-// Clone or update repo
-if (!existsSync(REPO_DIR)) {
-    execSync(`git clone --quiet --depth 1 ${REPO_URL} ${REPO_DIR}`, { stdio: "inherit" });
-} else {
-    process.chdir(REPO_DIR);
-    execSync(`git fetch --quiet origin`, { stdio: "inherit" });
-    const local = execSync(`git rev-parse @`).toString().trim();
-    const remote = execSync(`git rev-parse @{u}`).toString().trim();
-    if (local !== remote) {
-        execSync(`git pull --quiet --rebase origin main`, { stdio: "inherit" });
+/**
+ * Write converted config into same directory as original or into given directory.
+ * Returns the path to the written file.
+ */
+export function writeConvertedConfigFile(originalPath: string, convertedContent: string): string {
+    const dir = dirname(originalPath) || '.';
+    try {
+        if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+    } catch (e) {
+        // ignore mkdir errors
     }
-    process.chdir("..");
+
+    const base = basename(originalPath, extname(originalPath));
+    const outName = `${base}-legacy.ovpn`;
+    const outPath = join(dir, outName);
+    writeFileSync(outPath, convertedContent, 'utf8');
+    return outPath;
 }
 
-// Argument parsing
-const args = process.argv.slice(2);
-let AUTOCHOOSE = false;
-let INPUT_ARG = "";
-
-while (args.length > 0) {
-    const arg = args.shift();
-    if (arg === "--autochoose") {
-        AUTOCHOOSE = true;
-    } else if (arg) {
-        INPUT_ARG = arg;
-    }
+/**
+ * Run openvpn on the converted file using sudo. Returns numeric exit status.
+ */
+export function runOpenVpnConfig(filePath: string): number {
+    const cmd = 'sudo';
+    const args = ['openvpn', '--config', filePath, '--verb', '0'];
+    const res = spawnSync(cmd, args, { stdio: 'inherit' });
+    return res.status ?? 0;
 }
 
-if (!INPUT_ARG || INPUT_ARG === "--help") {
-    console.log("Usage: node legacyOpenVpn.js [--autochoose] <JP|KR|VN|RU|TH|US>");
-    process.exit(1);
-}
-
-// File selection
-let OVPN_FILE = "";
-if (!INPUT_ARG.includes("/")) {
-    const configDir = join(REPO_DIR, "configs");
-    const matches = readdirSync(configDir)
-        .filter(f => f.endsWith(`${INPUT_ARG}.ovpn`))
-        .map(f => join(configDir, f));
-    if (matches.length === 0 || !existsSync(matches[0])) {
-        console.error(`No file found for pattern: ${INPUT_ARG}`);
+// CLI: if executed directly, take a path to an .ovpn file and run the conversion + openvpn.
+if (require.main === module) {
+    const argv = process.argv.slice(2);
+    if (argv.length === 0) {
+        console.log('Usage: node legacyOpenVpn.js <path-to-file.ovpn>');
         process.exit(1);
-    } else if (matches.length === 1 || AUTOCHOOSE) {
-        OVPN_FILE = matches[0];
-        console.log(`File automatically selected: ${OVPN_FILE}`);
-    } else {
-        console.log("Multiple files found:");
-        matches.forEach((f, i) => console.log(`${i + 1}: ${f}`));
-        // For simplicity, auto-select the first if not AUTOCHOOSE
-        OVPN_FILE = matches[0];
-        console.log(`File selected: ${OVPN_FILE}`);
     }
-} else {
-    OVPN_FILE = INPUT_ARG;
-}
-
-if (!existsSync(OVPN_FILE)) {
-    console.error(`File not found: ${OVPN_FILE}`);
-    process.exit(1);
-}
-
-// Replace 'cipher' with 'data-ciphers'
-const tmpDir = mkdtempSync(join(tmpdir(), "ovpn-"));
-const TMP_OVPN = join(tmpDir, "modified.ovpn");
-const content = readFileSync(OVPN_FILE, "utf-8")
-    .replace(/^\s*cipher\s+/gim, "data-ciphers ");
-writeFileSync(TMP_OVPN, content);
-
-// Show what will be passed
-console.log("Using modified OVPN config (cipher -> data-ciphers):");
-content.split("\n").forEach(line => {
-    if (/data-ciphers/i.test(line)) {
-        console.log(line);
+    const inputPath = argv[0];
+    if (!existsSync(inputPath)) {
+        console.error(`File not found: ${inputPath}`);
+        process.exit(2);
     }
-});
-
-// Launch OpenVPN
-const result = spawnSync("sudo", ["openvpn", "--config", TMP_OVPN, "--verb", "0"], { stdio: "inherit" });
-
-// Cleanup
-unlinkSync(TMP_OVPN);
-
-process.exit(result.status ?? 0);
+    try {
+        const original = readFileSync(inputPath, 'utf8');
+        const converted = convertOvpnConfig(original);
+        const outPath = writeConvertedConfigFile(inputPath, converted);
+        console.log(`Wrote converted file: ${outPath}`);
+        const status = runOpenVpnConfig(outPath);
+        process.exit(status);
+    } catch (err: any) {
+        console.error('Error:', err && err.message ? err.message : err);
+        process.exit(3);
+    }
+}
