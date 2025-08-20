@@ -36,8 +36,8 @@ async function writeCache(cache: Record<string, any>) {
 export async function getIPInfo(ip: string, cache?: Record<string, any>): Promise<any> {
     cache = cache || await readCache();
     if (cache[ip]) {
-        console.log(`IP info for ${ip} loaded from cache`);
-        // return cache[ip];
+        // console.log(`IP info for ${ip} loaded from cache`);
+        return cache[ip];
     }
 
     const apiUrl = `http://ip-api.com/json/${ip}?fields=country,city,isp,query,lat,lon,timezone,as&lang=en`;
