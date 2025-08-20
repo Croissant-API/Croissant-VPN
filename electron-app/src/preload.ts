@@ -1,10 +1,9 @@
-import { contextBridge, ipcRenderer } from 'electron';
+const { contextBridge, ipcRenderer } = require('electron');
 
 console.log('Preload script is running');
 
 contextBridge.exposeInMainWorld('api', {
   getVpnList: (source = "All") => {
-    console.log('getVpnList called with source:', source);
     return ipcRenderer.invoke('getVpnList', source);
   },
   getISPs: async (ips: string[]) => {

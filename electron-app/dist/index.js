@@ -1,13 +1,16 @@
 import { app, BrowserWindow } from 'electron';
+import path from 'path';
 import { getVpnList as VPNGate } from './api/VPNGATE-getVpnList.js'; // Ensure this import matches the correct casing
 import { getVpnList as OPL } from './api/OPL-getVpnList.js'; // Ensure this import matches the correct casing
 import { ipcMain } from 'electron';
-// import { getIPInfo, readCache, writeCache } from './api/getIPInfo.js';
 import { createRequire } from "module";
 import { bulkIpLookup } from './api/getIPInfo.js';
 const require = createRequire(import.meta.url);
 const configs = require("./configs.json");
+import { URL } from 'url';
+const __dirname = path.dirname(new URL(import.meta.url).pathname);
 let VPNConfigs = [];
+let pendingConfigPromise = null;
 const handlers = {
     'getVpnList': async (event, source) => {
         if (source === 'OPL') {
@@ -30,51 +33,48 @@ const handlers = {
         return await bulkIpLookup(ips);
     },
     'getConfigs': () => {
-        if (VPNConfigs.length === 0) {
-            return new Promise((resolve) => {
-                const OPLListPromise = OPL();
-                const VPNGateListPromise = VPNGate();
-                Promise.all([OPLListPromise, VPNGateListPromise]).then(([opl, vpngate]) => {
-                    const oplServers = opl.servers.map((server) => ({ ...server, provider: 'OPL' }));
-                    const vpngateServers = vpngate.servers.map((server) => ({ ...server, provider: 'VPNGate' }));
-                    const allServers = [...oplServers, ...vpngateServers];
-                    const allIps = allServers.map((server) => server.ip);
-                    bulkIpLookup(allIps).then((isps) => {
-                        const servers = allServers.map((server) => {
-                            const ispInfo = isps.find((isp) => isp.query === server.ip) || {};
-                            return {
-                                isp: ispInfo.isp || "",
-                                country: ispInfo.country || "",
-                                city: ispInfo.city || "",
-                                lat: ispInfo.lat || "",
-                                lon: ispInfo.lon || "",
-                                timezone: ispInfo.timezone || "",
-                                as: ispInfo.as || "",
-                                provider: server.provider,
-                                download_url: server.download_url || "data:text/opvn;base64," + server.openvpn_configdata_base64 || ""
-                            };
-                            /* Exemple of return
-                             {
-                              "isp": "Aussie Broadband",
-                              "country": "Australia",
-                              "city": "Brisbane",
-                              "lat": -27.5073,
-                              "lon": 153.0504,
-                              "timezone": "Australia/Brisbane",
-                              "as": "AS4764 Aussie Broadband",
-                              "provider": "VPNGate",
-                              "download_url": "data:text/opvn;base64,..."
-                            } */
-                        });
-                        VPNConfigs = servers;
-                        resolve(servers);
-                    });
-                });
-            });
-        }
-        else {
+        if (VPNConfigs.length > 0) {
             return VPNConfigs;
         }
+        // Si une promesse est déjà en cours, retourner celle-ci
+        if (pendingConfigPromise) {
+            return pendingConfigPromise;
+        }
+        // Créer une nouvelle promesse et la stocker
+        pendingConfigPromise = new Promise((resolve) => {
+            const OPLListPromise = OPL(); // Ensure this import matches the correct casing
+            const VPNGateListPromise = VPNGate();
+            Promise.all([OPLListPromise, VPNGateListPromise]).then(([opl, vpngate]) => {
+                const oplServers = opl.servers.map((server) => ({ ...server, provider: 'OPL' }));
+                const vpngateServers = vpngate.servers.map((server) => ({ ...server, provider: 'VPNGate' }));
+                const allServers = [...oplServers, ...vpngateServers];
+                const allIps = allServers.map((server) => server.ip);
+                bulkIpLookup(allIps).then((isps) => {
+                    const servers = allServers.map((server) => {
+                        const ispInfo = isps.find((isp) => isp.query === server.ip) || {};
+                        return {
+                            ip: server.ip,
+                            isp: ispInfo.isp || "",
+                            country: ispInfo.country || "",
+                            city: ispInfo.city || "",
+                            lat: ispInfo.lat || "",
+                            lon: ispInfo.lon || "",
+                            timezone: ispInfo.timezone || "",
+                            as: ispInfo.as || "",
+                            provider: server.provider,
+                            download_url: server.download_url || "data:text/opvn;base64," + server.openvpn_configdata_base64 || ""
+                        };
+                    });
+                    VPNConfigs = servers;
+                    pendingConfigPromise = null; // Réinitialiser la promesse en cours
+                    resolve(servers);
+                });
+            }).catch((error) => {
+                pendingConfigPromise = null; // Réinitialiser en cas d'erreur
+                throw error;
+            });
+        });
+        return pendingConfigPromise;
     }
 };
 // Register all handlers
@@ -88,7 +88,8 @@ function createWindow() {
             ...configs.mainWindow.webPreferences,
             contextIsolation: true,
             nodeIntegration: false,
-            sandbox: true
+            sandbox: true,
+            preload: path.join(decodeURI(__dirname), 'preload.js') // Chemin absolu vers le preload script
         }
     });
     // Set CSP headers

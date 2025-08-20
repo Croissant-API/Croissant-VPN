@@ -59,14 +59,36 @@ const getListsScript = `
 
 function getVpnListHTML(): Promise<string> {
     return new Promise((resolve, reject) => {
+        const win = new BrowserWindow({ 
+            show: false, 
+            webPreferences: { 
+                contextIsolation: true,
+                // Add these settings to modify CSP
+                webSecurity: true,
+                allowRunningInsecureContent: false
+            } 
+        });
 
-        const win = new BrowserWindow({ show: false, webPreferences: { contextIsolation: false } });
+        // Add CSP headers
+        win.webContents.session.webRequest.onHeadersReceived(({ responseHeaders }, callback) => {
+            if (responseHeaders) {
+                delete responseHeaders['content-security-policy'];
+                delete responseHeaders['content-security-policy-report-only'];
+            }
+            callback({ 
+                responseHeaders: {
+                    ...responseHeaders,
+                    'content-security-policy': ["script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://www.gstatic.com"]
+                }
+            });
+        });
+
+        // Keep existing request blocking
         win.webContents.session.webRequest.onBeforeRequest(
             { urls: ["*://*/*.js", "*://*/*.ads*", "*://*/*ad*"] },
             (details, cb) => {
-                if (
-                    /ads|doubleclick|googlesyndication|adservice|adserver/.test(details.url)
-                ) return cb({ cancel: true });
+                if (/ads|doubleclick|googlesyndication|adservice|adserver/.test(details.url)) 
+                    return cb({ cancel: true });
                 cb({});
             }
         );
