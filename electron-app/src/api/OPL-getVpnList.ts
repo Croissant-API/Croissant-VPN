@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from "electron";
+import { BrowserWindow } from "electron";
 import { load } from "cheerio";
 
 declare global {
@@ -10,7 +10,7 @@ declare global {
 }
 
 const SITE_KEY = "6LepNaEaAAAAAMcfZb4shvxaVWulaKUfjhOxOHRS";
-const URL = "https://openproxylist.com/openvpn/";
+const getListURL = "https://openproxylist.com/openvpn/";
 
 function sleep(ms: number) {
     return new Promise(res => setTimeout(res, ms));
@@ -31,7 +31,7 @@ async function getListsScriptFn() {
                 "Sec-Fetch-Mode": "navigate",
                 "Sec-Fetch-Site": "same-origin",
             },
-            referrer: URL,
+            referrer: getListURL,
             body: `g-recaptcha-response=${token}&response=&sort=sortlast&dataType=openvpn&page=${page}`,
             method: "POST",
             mode: "cors",
@@ -50,6 +50,8 @@ async function getListsScriptFn() {
 }
 
 const getListsScript = `
+    const SITE_KEY = "${SITE_KEY}";
+    const getListURL = "${getListURL}";
     ${sleep.toString()}
     ${getListsScriptFn.toString()}
     getListsScriptFn();
@@ -57,27 +59,29 @@ const getListsScript = `
 
 function getVpnListHTML(): Promise<string> {
     return new Promise((resolve, reject) => {
-        app.on("ready", () => {
-            const win = new BrowserWindow({ show: true, webPreferences: { contextIsolation: false } });
-            win.webContents.session.webRequest.onBeforeRequest(
-                { urls: ["*://*/*.js", "*://*/*.ads*", "*://*/*ad*"] },
-                (details, cb) => {
-                    if (
-                        /ads|doubleclick|googlesyndication|adservice|adserver/.test(details.url)
-                    ) return cb({ cancel: true });
-                    cb({});
-                }
-            );
-            win.loadURL(URL);
-            win.webContents.openDevTools();
-            win.webContents.once("did-finish-load", async () => {
-                try {
-                    const result = await win.webContents.executeJavaScript(getListsScript);
-                    resolve(result);
-                } catch (err) {
-                    reject(err);
-                }
-            });
+
+        const win = new BrowserWindow({ show: false, webPreferences: { contextIsolation: false } });
+        win.webContents.session.webRequest.onBeforeRequest(
+            { urls: ["*://*/*.js", "*://*/*.ads*", "*://*/*ad*"] },
+            (details, cb) => {
+                if (
+                    /ads|doubleclick|googlesyndication|adservice|adserver/.test(details.url)
+                ) return cb({ cancel: true });
+                cb({});
+            }
+        );
+        win.loadURL(getListURL);
+        win.webContents.once("did-finish-load", async () => {
+            try {
+                console.log("Executing script to fetch VPN list HTML");
+                const result = await win.webContents.executeJavaScript(getListsScript);
+                resolve(result);
+            } catch (err) {
+                reject(err);
+            }
+            finally {
+                win.close();
+            }
         });
     });
 }
@@ -119,7 +123,9 @@ function parseVpnList(html: string): { servers: VpnServer[]; countries: { [k: st
 
 export async function getVpnList(): Promise<{ servers: VpnServer[]; countries: { [k: string]: string } }> {
     try {
+        console.log("Fetching VPN list HTML from OPL");
         const html = await getVpnListHTML();
+        console.log("Fetched VPN list HTML successfully");
         return parseVpnList(html);
     } catch (e) {
         console.error("Error fetching VPN list:", e);

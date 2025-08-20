@@ -1,13 +1,16 @@
-import { app, BrowserWindow } from "electron";
-import { load } from 'cheerio';
+import { BrowserWindow } from "electron";
+import { load } from "cheerio";
+const SITE_KEY = "6LepNaEaAAAAAMcfZb4shvxaVWulaKUfjhOxOHRS";
+const getListURL = "https://openproxylist.com/openvpn/";
+function sleep(ms) {
+    return new Promise(res => setTimeout(res, ms));
+}
 async function getListsScriptFn() {
-    while (window.grecaptcha === undefined || window.grecaptcha.execute === undefined) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-    }
-    const grecaptcha = window.grecaptcha;
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for the token to be ready
+    while (!window.grecaptcha?.execute)
+        await sleep(100);
+    await sleep(1000);
     const fetchPage = async (page) => {
-        const token = await grecaptcha.execute("6LepNaEaAAAAAMcfZb4shvxaVWulaKUfjhOxOHRS", { action: "homepage" });
+        const token = await window.grecaptcha.execute(SITE_KEY, { action: "homepage" });
         return fetch("https://openproxylist.com/get-list.html", {
             headers: {
                 "Content-Type": "application/x-www-form-urlencoded",
@@ -17,66 +20,48 @@ async function getListsScriptFn() {
                 "Sec-Fetch-Mode": "navigate",
                 "Sec-Fetch-Site": "same-origin",
             },
-            referrer: "https://openproxylist.com/openvpn/",
-            body: "g-recaptcha-response=" + token + "&response=&sort=sortlast&dataType=openvpn&page=" + page,
+            referrer: getListURL,
+            body: `g-recaptcha-response=${token}&response=&sort=sortlast&dataType=openvpn&page=${page}`,
             method: "POST",
             mode: "cors",
-        }).then(r => {
-            if (!r.ok)
-                throw new Error("Network response was not ok");
-            return r.text();
-        });
+        }).then(r => r.ok ? r.text() : Promise.reject("Network error"));
     };
-    while (document.querySelector('.pagination .page-link[page-data]') === null) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-    }
-    const pageElements = Array.from(document.querySelectorAll('.pagination .page-link[page-data]'))
+    while (!document.querySelector('.pagination .page-link[page-data]'))
+        await sleep(100);
+    const pages = Array.from(document.querySelectorAll('.pagination .page-link[page-data]'))
         .filter(el => !isNaN(parseInt(el.innerText)));
-    const pageNumbers = pageElements[pageElements.length - 1].innerText;
-    console.log("Total pages:", pageNumbers);
-    const pages = Array.from({ length: parseInt(pageNumbers) }, (_, i) => (i + 1).toString());
-    const fetchPromises = pages.map((page, idx) => fetchPage(page).then(result => ({ idx, result })));
-    const unorderedResults = await Promise.all(fetchPromises);
-    // Sort by original page order
-    const orderedResults = unorderedResults
-        .sort((a, b) => a.idx - b.idx)
-        .map(item => item.result);
-    return orderedResults.join("\\n<!--PAGE_BREAK-->\\n");
+    const lastPage = parseInt(pages[pages.length - 1].innerText);
+    const results = await Promise.all(Array.from({ length: lastPage }, (_, i) => fetchPage((i + 1).toString())));
+    return results.join("\\n<!--PAGE_BREAK-->\\n");
 }
 const getListsScript = `
+    const SITE_KEY = "${SITE_KEY}";
+    const getListURL = "${getListURL}";
+    ${sleep.toString()}
     ${getListsScriptFn.toString()}
     getListsScriptFn();
 `;
 function getVpnListHTML() {
     return new Promise((resolve, reject) => {
-        app.on('ready', () => {
-            const win = new BrowserWindow({ show: true, webPreferences: { contextIsolation: false } });
-            win.webContents.session.webRequest.onBeforeRequest({ urls: ["*://*/*.js", "*://*/*.ads*", "*://*/*ad*"] }, (details, callback) => {
-                // Block requests to common ad scripts and ad-related URLs
-                if (details.url.includes("ads") ||
-                    details.url.includes("doubleclick") ||
-                    details.url.includes("googlesyndication") ||
-                    details.url.includes("adservice") ||
-                    details.url.includes("adserver")) {
-                    return callback({ cancel: true });
-                }
-                callback({});
-            });
-            win.loadURL('https://openproxylist.com/openvpn/');
-            // open the dev tools for debugging
-            win.webContents.openDevTools();
-            win.webContents.once('did-finish-load', async () => {
-                try {
-                    const result = await win.webContents.executeJavaScript(getListsScript);
-                    resolve(result);
-                }
-                catch (err) {
-                    reject(err);
-                }
-                finally {
-                    // win.close();
-                }
-            });
+        const win = new BrowserWindow({ show: false, webPreferences: { contextIsolation: false } });
+        win.webContents.session.webRequest.onBeforeRequest({ urls: ["*://*/*.js", "*://*/*.ads*", "*://*/*ad*"] }, (details, cb) => {
+            if (/ads|doubleclick|googlesyndication|adservice|adserver/.test(details.url))
+                return cb({ cancel: true });
+            cb({});
+        });
+        win.loadURL(getListURL);
+        win.webContents.once("did-finish-load", async () => {
+            try {
+                console.log("Executing script to fetch VPN list HTML");
+                const result = await win.webContents.executeJavaScript(getListsScript);
+                resolve(result);
+            }
+            catch (err) {
+                reject(err);
+            }
+            finally {
+                win.close();
+            }
         });
     });
 }
@@ -84,33 +69,36 @@ function parseVpnList(html) {
     const $ = load(html);
     const servers = [];
     const countries = {};
-    $('tr').each((index, element) => {
-        if (index === 0 || index === 1)
-            return; // Skip header rows
-        const ip = $(element).find('th').first().text().trim();
-        const cells = $(element).find('td');
+    $("tr").each((i, el) => {
+        if (i < 2)
+            return;
+        const ip = $(el).find("th").first().text().trim();
         if (!ip)
-            return; // Skip if no IP found
+            return;
+        const cells = $(el).find("td");
+        const [country, city = ""] = $(cells[1]).text().trim().split(",").map(s => s.trim());
         const server = {
-            ip: ip,
-            country: $(cells[1]).text().trim().split(",")[0]?.trim() || "",
-            city: $(cells[1]).text().trim().split(",")[1]?.trim() || "",
+            ip,
+            country,
+            city,
             response_time: $(cells[2]).text().trim(),
             isp: $(cells[3]).text().trim(),
             last_check: $(cells[4]).text().trim(),
         };
-        countries[server.country.toLowerCase().replace(" ", "_")] = server.country;
+        countries[country.toLowerCase().replace(/ /g, "_")] = country;
         servers.push(server);
     });
     return { servers, countries };
 }
 export async function getVpnList() {
     try {
+        console.log("Fetching VPN list HTML from OPL");
         const html = await getVpnListHTML();
+        console.log("Fetched VPN list HTML successfully");
         return parseVpnList(html);
     }
-    catch (error) {
-        console.error("Error fetching VPN list:", error);
+    catch (e) {
+        console.error("Error fetching VPN list:", e);
         return { servers: [], countries: {} };
     }
 }
