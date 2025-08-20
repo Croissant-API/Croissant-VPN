@@ -1,5 +1,6 @@
 import { app, BrowserWindow } from 'electron';
 import path from 'path';
+import fs from 'fs';
 
 import { getVpnList as VPNGate } from './api/VPNGATE-getVpnList.js';
 import { getVpnList as OPL } from './api/OPL-getVpnList.js';
@@ -46,12 +47,12 @@ const handlers: { [key: string]: Function } = {
       return VPNConfigs;
     }
 
-   
+
     if (pendingConfigPromise) {
       return pendingConfigPromise;
     }
 
-   
+
     pendingConfigPromise = new Promise((resolve) => {
       const OPLListPromise = OPL();
       const VPNGateListPromise = VPNGate();
@@ -90,10 +91,10 @@ const handlers: { [key: string]: Function } = {
 
     return pendingConfigPromise;
   },
- 
-  'connectVPN': async (event: any, ip:string, configUrl: string) => {
+
+  'connectVPN': async (event: any, ip: string, configUrl: string) => {
     try {
-      const exitCode = await connectToLegacyOpenVpn(ip ,configUrl);
+      const exitCode = await connectToLegacyOpenVpn(ip, configUrl);
       return { success: exitCode === 0 };
     } catch (error) {
       console.error('VPN connection error:', error);
@@ -140,8 +141,8 @@ function createWindow() {
   });
 
   mainWindow.maximize();
+  mainWindow.setMenuBarVisibility(false);
 
- 
   mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
     callback({
       responseHeaders: {
@@ -160,12 +161,20 @@ function createWindow() {
   if (configs.devMode) {
     mainWindow.loadURL('http://localhost:5173/');
   } else {
-    mainWindow.loadFile('build/index.html');
+    // Fix: Use path.resolve to get the absolute path and handle special characters
+    const indexPath = path.resolve(decodeURI(__dirname), "..", 'build', 'index.html');
+    if (!fs.existsSync(indexPath)) {
+      console.error('Index file not found at:', indexPath);
+      app.quit();
+      return;
+    }
+    console.log('Loading file from:', indexPath);
+    mainWindow.loadFile(indexPath);
   }
 
-  if (configs.devMode) {
-    mainWindow.webContents.openDevTools();
-  }
+  // if (configs.devMode) {
+  //   mainWindow.webContents.openDevTools();
+  // }
 }
 
 app.whenReady().then(createWindow);

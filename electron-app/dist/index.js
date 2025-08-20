@@ -1,5 +1,6 @@
 import { app, BrowserWindow } from 'electron';
 import path from 'path';
+import fs from 'fs';
 import { getVpnList as VPNGate } from './api/VPNGATE-getVpnList.js';
 import { getVpnList as OPL } from './api/OPL-getVpnList.js';
 import { ipcMain } from 'electron';
@@ -123,6 +124,7 @@ function createWindow() {
         icon: path.join(decodeURI(__dirname), "..", "..", "public", 'icons', 'favicon.ico')
     });
     mainWindow.maximize();
+    mainWindow.setMenuBarVisibility(false);
     mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
         callback({
             responseHeaders: {
@@ -141,10 +143,18 @@ function createWindow() {
         mainWindow.loadURL('http://localhost:5173/');
     }
     else {
-        mainWindow.loadFile('build/index.html');
+        // Fix: Use path.resolve to get the absolute path and handle special characters
+        const indexPath = path.resolve(decodeURI(__dirname), "..", 'build', 'index.html');
+        if (!fs.existsSync(indexPath)) {
+            console.error('Index file not found at:', indexPath);
+            app.quit();
+            return;
+        }
+        console.log('Loading file from:', indexPath);
+        mainWindow.loadFile(indexPath);
     }
-    if (configs.devMode) {
-        mainWindow.webContents.openDevTools();
-    }
+    // if (configs.devMode) {
+    //   mainWindow.webContents.openDevTools();
+    // }
 }
 app.whenReady().then(createWindow);

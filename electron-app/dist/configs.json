@@ -1,16 +1,19 @@
 {
-    "mainWindow": {
-        "width": 600,
-        "height": 800,
-        "webPreferences": {
-            "nodeIntegration": true,
-            "contextIsolation": false
-        }
-    },
-    "oplConstants": {
-        "site_key": "6LepNaEaAAAAAMcfZb4shvxaVWulaKUfjhOxOHRS",
-        "base_url": "https://openproxylist.com/openvpn/"
-    },
-    "devMode": true,
-    "ipInfoUserAgent": "curl/7.68.0"
+  "mainWindow": {
+    "width": 600,
+    "height": 800,
+    "maximized": true,
+    "webPreferences": {
+      "nodeIntegration": false,
+      "contextIsolation": true,
+      "sandbox": true,
+      "preload": "${path.join(__dirname, 'preload.js')}"
+    }
+  },
+  "oplConstants": {
+    "site_key": "6LepNaEaAAAAAMcfZb4shvxaVWulaKUfjhOxOHRS",
+    "base_url": "https://openproxylist.com/openvpn/"
+  },
+  "devMode": false,
+  "ipInfoUserAgent": "curl/7.68.0"
 }
