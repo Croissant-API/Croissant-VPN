@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('api', {
         return results[0] || {};
     },
     getConfigs: () => ipcRenderer.invoke('getConfigs'),
-    connectVPN: (configUrl) => ipcRenderer.invoke('connectVPN', configUrl),
-    disconnectVPN: () => ipcRenderer.invoke('disconnectVPN')
+    connectVPN: (ip, configUrl) => ipcRenderer.invoke('connectVPN', ip, configUrl),
+    disconnectVPN: () => ipcRenderer.invoke('disconnectVPN'),
+    getVpnStatus: () => ipcRenderer.invoke('getVpnStatus'),
 });

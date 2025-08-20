@@ -11,6 +11,7 @@ import { bulkIpLookup } from './api/getIPInfo.js';
 const require = createRequire(import.meta.url);
 const configs = require("./configs.json");
 import { URL } from 'url';
+import { connectToLegacyOpenVpn, disconnectFromOpenVpn, getVpnStatus } from './api/legacyOpenVpn.js';
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
 
 declare global {
@@ -88,6 +89,34 @@ const handlers: { [key: string]: Function } = {
     });
 
     return pendingConfigPromise;
+  },
+  // Ajout des nouveaux handlers
+  'connectVPN': async (event: any, ip:string, configUrl: string) => {
+    try {
+      const exitCode = await connectToLegacyOpenVpn(ip ,configUrl);
+      return { success: exitCode === 0 };
+    } catch (error) {
+      console.error('VPN connection error:', error);
+      return { success: false, error: (error as Error).message };
+    }
+  },
+  'disconnectVPN': async () => {
+    try {
+      await disconnectFromOpenVpn();
+      return { success: true };
+    } catch (error) {
+      console.error('VPN disconnection error:', error);
+      return { success: false, error: (error as Error).message };
+    }
+  },
+  'getVpnStatus': async () => {
+    try {
+      const isConnected = await getVpnStatus();
+      return { success: true, connected: isConnected };
+    } catch (error) {
+      console.error('VPN status check error:', error);
+      return { success: false, error: (error as Error).message };
+    }
   }
 };
 
@@ -109,6 +138,8 @@ function createWindow() {
     },
     icon: path.join(decodeURI(__dirname), "..", "..", "public", 'icons', 'favicon.ico') // Chemin absolu vers l'icône
   });
+
+  mainWindow.maximize(); // Maximiser la fenêtre si configuré
 
   // Set CSP headers
   mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {

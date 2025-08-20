@@ -73,12 +73,39 @@ function App() {
     }
   };
 
+  // Ajouter un effet pour vérifier périodiquement le statut
+  useEffect(() => {
+    const checkStatus = async () => {
+      try {
+        const status = await window.api.getVpnStatus();
+        if (!status.connected && connectedServer) {
+          setConnectedServer(null);
+        } else if (status.connected && (!connectedServer || status.ip !== selectedServer?.ip)) {
+          // Mettre à jour le serveur connecté si l'IP ne correspond pas au serveur sélectionné
+          const matchingServer = configs.find(s => s.ip === status.connected);
+          setConnectedServer(matchingServer || null);
+        }
+      } catch (error) {
+        console.error("Failed to check VPN status:", error);
+      }
+    };
+
+    // Vérifier toutes les 5 secondes
+    const interval = setInterval(checkStatus, 5000);
+
+    // Vérifier immédiatement au montage
+    checkStatus();
+
+    // Nettoyer l'intervalle au démontage
+    return () => clearInterval(interval);
+  }, [connectedServer, selectedServer, configs]);
+
   const handleConnect = async () => {
     if (selectedServer) {
       try {
         if (!connectedServer) {
           console.log("Connecting to:", selectedServer.ip);
-          const result = await window.api.connectVPN(selectedServer.download_url);
+          const result = await window.api.connectVPN(selectedServer.ip, selectedServer.download_url);
           if (result.success) {
             setConnectedServer(selectedServer);
           } else {
@@ -332,10 +359,23 @@ function App() {
               <Typography variant="body2" gutterBottom>
                 Selected Server Info:
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography 
+                variant="body2" 
+                color="text.secondary"
+                sx={{
+                  '& .isp-text': {
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    display: 'block',
+                    width: 175,
+                    maxWidth: '100%'
+                  }
+                }}
+              >
                 {selectedServer.isp && (
                   <>
-                    ISP: {selectedServer.isp}<br />
+                    <span className="isp-text" title={selectedServer.isp}>ISP: {selectedServer.isp}</span>
                     Lon: {selectedServer.lon}<br />
                     Lat: {selectedServer.lat}<br />
                     Timezone : {selectedServer.timezone || "Unknown"}<br />
@@ -352,13 +392,13 @@ function App() {
             disabled={!selectedServer}
             className="connect-button"
             sx={{
-              backgroundColor: connectedServer ? '#d32f2f' : undefined,
+              backgroundColor: connectedServer?.ip === selectedServer?.ip ? '#d32f2f' : undefined,
               '&:hover': {
-                backgroundColor: connectedServer ? '#aa2424' : undefined
+                backgroundColor: connectedServer?.ip === selectedServer?.ip ? '#aa2424' : undefined
               }
             }}
           >
-            {connectedServer ? 'DISCONNECT' : 'CONNECT'}
+            {connectedServer?.ip === selectedServer?.ip ? 'DISCONNECT' : 'CONNECT'}
           </Button>
         </Paper>
       </Box>

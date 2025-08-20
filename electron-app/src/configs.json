@@ -2,6 +2,7 @@
   "mainWindow": {
     "width": 600,
     "height": 800,
+    "maximized": true,
     "webPreferences": {
       "nodeIntegration": false,
       "contextIsolation": true,
