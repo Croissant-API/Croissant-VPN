@@ -2,8 +2,9 @@ import { app, BrowserWindow } from 'electron';
 import { getVpnList as VPNGate } from './api/VPNGATE-getVpnList.js'; // Ensure this import matches the correct casing
 import { getVpnList as OPL } from './api/OPL-getVpnList.js'; // Ensure this import matches the correct casing
 import { ipcMain } from 'electron';
-import { getIPInfo, readCache, writeCache } from './api/getIPInfo.js';
+// import { getIPInfo, readCache, writeCache } from './api/getIPInfo.js';
 import { createRequire } from "module";
+import { bulkIpLookup } from './api/getIPInfo.js';
 const require = createRequire(import.meta.url);
 const configs = require("./configs.json");
 function initSharedFunctions() {
@@ -59,10 +60,21 @@ const handlers = {
         }
     },
     'getISPs': async (event, ips) => {
-        const cache = await readCache();
-        const results = await Promise.all(ips.map((ip) => getIPInfo(ip, cache)));
-        await writeCache(cache); // On écrit le cache une seule fois à la fin
-        return results;
+        // const cache = await readCache();
+        // const results = await Promise.all(ips.map((ip: string) => getIPInfo(ip, cache)));
+        // await writeCache(cache); // On écrit le cache une seule fois à la fin
+        // return results;
+        const results = await bulkIpLookup(ips);
+        return results.map((result) => ({
+            country: result.country,
+            city: result.city,
+            isp: result.isp,
+            query: result.query,
+            lat: result.lat,
+            lon: result.lon,
+            timezone: result.timezone,
+            as: result.as
+        }));
     }
 };
 // Register all handlers
