@@ -11,7 +11,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "electron-transpile": "tsc --project electron-app/tsconfig.json"
+    "electron-transpile": "tsc --project electron-app/tsconfig.json",
+    "build:preload": "tsc src/preload.ts --outDir dist"
   },
   "repository": {
     "type": "git",
@@ -26,6 +27,9 @@
   },
   "homepage": "https://github.com/Croissant-API/Croissant-VPN#readme",
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/material": "^7.3.1",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.7.0",
     "@testing-library/react": "^16.3.0",
@@ -33,8 +37,10 @@
     "cheerio": "^1.1.2",
     "electron-squirrel-startup": "^1.0.1",
     "http": "^0.0.1-security",
+    "leaflet": "^1.9.4",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
+    "react-leaflet": "^5.0.0",
     "ts-node": "^10.9.2"
   },
   "devDependencies": {

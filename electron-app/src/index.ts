@@ -1,4 +1,5 @@
 import { app, BrowserWindow } from 'electron';
+import path from 'path';
 
 import { getVpnList as VPNGate } from './api/VPNGATE-getVpnList.js'; // Ensure this import matches the correct casing
 import { getVpnList as OPL } from './api/OPL-getVpnList.js'; // Ensure this import matches the correct casing
@@ -17,31 +18,31 @@ declare global {
   }
 }
 
+let VPNConfigs: object[] = []
 
-function initSharedFunctions() {
-  let VPNConfigs: object[] = []
-  const ipcRenderer = require('electron').ipcRenderer;
-  window.getVpnList = (source = "All") => {
-    return ipcRenderer.invoke('getVpnList', source);
-  };
-  window.getISPs = async (ips: string[]) => {
-    if (!ips || ips.length === 0) {
-      throw new Error("No IPs provided");
+const handlers: { [key: string]: Function } = {
+  'getVpnList': async (event: any, source: string) => {
+    if (source === 'OPL') {
+      const vpnList = await OPL();
+      return vpnList;
+    } else if (source === 'VPNGate') {
+      const vpnList = await VPNGate();
+      return vpnList;
+    } else if (source === "All") {
+      const [oplList, vpnGateList] = await Promise.all([OPL(), VPNGate()]);
+      return { opl: oplList, vpnGate: vpnGateList };
+    } else {
+      return { error: 'Unknown source' };
     }
-    else {
-      return ipcRenderer.invoke('getISPs', ips);
-    }
-  }
-  window.getISP = async (ip: string) => {
-    return ipcRenderer.invoke('getISPs', [ip]).then((results: any[]) => {
-      return results[0] || {};
-    });
-  }
-  window.getConfigs = () => {
+  },
+  'getISPs': async (event: any, ips: string[]) => {
+    return await bulkIpLookup(ips);
+  },
+  'getConfigs': () => {
     if (VPNConfigs.length === 0) {
       return new Promise((resolve) => {
-        const OPLListPromise = ipcRenderer.invoke('getVpnList', 'OPL');
-        const VPNGateListPromise = ipcRenderer.invoke('getVpnList', 'VPNGate');
+        const OPLListPromise = OPL();
+        const VPNGateListPromise = VPNGate();
 
         Promise.all([OPLListPromise, VPNGateListPromise]).then(([opl, vpngate]) => {
           const oplServers = opl.servers.map((server: any) => ({ ...server, provider: 'OPL' }));
@@ -49,7 +50,7 @@ function initSharedFunctions() {
           const allServers = [...oplServers, ...vpngateServers];
           const allIps = allServers.map((server: any) => server.ip);
 
-          ipcRenderer.invoke('getISPs', allIps).then((isps: any[]) => {
+          bulkIpLookup(allIps).then((isps: any[]) => {
             const servers = allServers.map((server: any) => {
               const ispInfo = isps.find((isp: any) => isp.query === server.ip) || {};
               return {
@@ -86,36 +87,6 @@ function initSharedFunctions() {
     else {
       return VPNConfigs;
     }
-  };
-}
-
-const handlers: { [key: string]: Function } = {
-  'getVpnList': async (event: any, source: string) => {
-    if (source === 'OPL') {
-      const vpnList = await OPL();
-      return vpnList;
-    } else if (source === 'VPNGate') {
-      const vpnList = await VPNGate();
-      return vpnList;
-    } else if (source === "All") {
-      const [oplList, vpnGateList] = await Promise.all([OPL(), VPNGate()]);
-      return { opl: oplList, vpnGate: vpnGateList };
-    } else {
-      return { error: 'Unknown source' };
-    }
-  },
-  'getISPs': async (event: any, ips: string[]) => {
-    const results = await bulkIpLookup(ips);
-    return results.map((result) => ({
-      country: result.country,
-      city: result.city,
-      isp: result.isp,
-      query: result.query,
-      lat: result.lat,
-      lon: result.lon,
-      timezone: result.timezone,
-      as: result.as
-    }));
   }
 };
 
@@ -126,15 +97,42 @@ for (const [channel, handler] of Object.entries(handlers)) {
 
 
 function createWindow() {
-  const mainWindow = new BrowserWindow(configs.mainWindow);
-
-  mainWindow.loadFile('index.html');
-  mainWindow.webContents.once('did-finish-load', () => {
-    mainWindow.webContents.executeJavaScript(initSharedFunctions.toString() + ";initSharedFunctions();");
+  const mainWindow = new BrowserWindow({
+    ...configs.mainWindow,
+    webPreferences: {
+      ...configs.mainWindow.webPreferences,
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+      preload: path.join(__dirname, 'preload.js') // Chemin absolu vers le preload script
+    }
   });
 
-  if (configs.devMode)
+  // Set CSP headers
+  mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          "default-src 'self';" +
+          "script-src 'self' 'unsafe-inline' 'unsafe-eval';" +
+          "style-src 'self' 'unsafe-inline';" +
+          "img-src 'self' data: https:;" +
+          "connect-src 'self' http: https:;"
+        ]
+      }
+    });
+  });
+
+  if (configs.devMode) {
+    mainWindow.loadURL('http://localhost:5173/');
+  } else {
+    mainWindow.loadFile('build/index.html');
+  }
+
+  if (configs.devMode) {
     mainWindow.webContents.openDevTools();
+  }
 }
 
 app.whenReady().then(createWindow);
