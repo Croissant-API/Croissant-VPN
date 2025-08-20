@@ -31,7 +31,7 @@ async function getListsScriptFn() {
         await sleep(100);
     const pages = Array.from(document.querySelectorAll('.pagination .page-link[page-data]'))
         .filter(el => !isNaN(parseInt(el.innerText)));
-    const lastPage = parseInt(pages[pages.length - 1].innerText);
+    const lastPage = !configs.devMode ? parseInt(pages[pages.length - 1].innerText) : 1;
     const results = await Promise.all(Array.from({ length: lastPage }, (_, i) => fetchPage((i + 1).toString())));
     return results.join("\\n<!--PAGE_BREAK-->\\n");
 }
@@ -79,6 +79,7 @@ function parseVpnList(html) {
         const [country, city = ""] = $(cells[1]).text().trim().split(",").map(s => s.trim());
         const server = {
             ip,
+            download_url: "https://openproxylist.com/" + $(cells[0]).find("a").attr("href") || "",
             country,
             city,
             response_time: $(cells[2]).text().trim(),

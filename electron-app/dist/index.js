@@ -8,40 +8,61 @@ import { bulkIpLookup } from './api/getIPInfo.js';
 const require = createRequire(import.meta.url);
 const configs = require("./configs.json");
 function initSharedFunctions() {
-    window.OPL = {
-        getVpnList: () => require('electron').ipcRenderer.invoke('OPL:getVpnList')
-    };
-    window.VPNGate = {
-        getVpnList: () => require('electron').ipcRenderer.invoke('VPNGate:getVpnList')
-    };
+    let VPNConfigs = [];
+    const ipcRenderer = require('electron').ipcRenderer;
     window.getVpnList = (source = "All") => {
-        return require('electron').ipcRenderer.invoke('getVpnList', source);
+        return ipcRenderer.invoke('getVpnList', source);
     };
-    window.getISPs = (ips) => {
-        return require('electron').ipcRenderer.invoke('getISPs', ips);
+    window.getISPs = async (ips) => {
+        if (!ips || ips.length === 0) {
+            throw new Error("No IPs provided");
+        }
+        else {
+            return ipcRenderer.invoke('getISPs', ips);
+        }
     };
-    window.getVPNGateISPs = async () => {
-        const vpnGateList = await window.VPNGate.getVpnList();
-        const ips = vpnGateList.servers.map((i) => i.ip);
-        const isps = await window.getISPs(ips);
-        return isps;
+    window.getISP = async (ip) => {
+        return ipcRenderer.invoke('getISPs', [ip]).then((results) => {
+            return results[0] || {};
+        });
     };
-    window.getOPL_ISPs = async () => {
-        const oplList = await window.OPL.getVpnList();
-        const ips = oplList.servers.map((i) => i.ip);
-        const isps = await window.getISPs(ips);
-        return isps;
+    window.getConfigs = () => {
+        if (VPNConfigs.length === 0) {
+            return new Promise((resolve) => {
+                const OPLListPromise = ipcRenderer.invoke('getVpnList', 'OPL');
+                const VPNGateListPromise = ipcRenderer.invoke('getVpnList', 'VPNGate');
+                Promise.all([OPLListPromise, VPNGateListPromise]).then(([opl, vpngate]) => {
+                    const oplServers = opl.servers.map((server) => ({ ...server, provider: 'OPL' }));
+                    const vpngateServers = vpngate.servers.map((server) => ({ ...server, provider: 'VPNGate' }));
+                    const allServers = [...oplServers, ...vpngateServers];
+                    const allIps = allServers.map((server) => server.ip);
+                    ipcRenderer.invoke('getISPs', allIps).then((isps) => {
+                        const servers = allServers.map((server) => {
+                            const ispInfo = isps.find((isp) => isp.query === server.ip) || {};
+                            return {
+                                isp: ispInfo.isp || "",
+                                country: ispInfo.country || "",
+                                city: ispInfo.city || "",
+                                lat: ispInfo.lat || "",
+                                lon: ispInfo.lon || "",
+                                timezone: ispInfo.timezone || "",
+                                as: ispInfo.as || "",
+                                provider: server.provider,
+                                download_url: server.download_url || "data:text/opvn;base64," + server.openvpn_configdata_base64 || ""
+                            };
+                        });
+                        VPNConfigs = servers;
+                        resolve(servers);
+                    });
+                });
+            });
+        }
+        else {
+            return VPNConfigs;
+        }
     };
 }
 const handlers = {
-    'OPL:getVpnList': async () => {
-        console.log('Fetching VPN list from OPL');
-        return await OPL();
-    },
-    'VPNGate:getVpnList': async () => {
-        console.log('Fetching VPN list from VPNGate');
-        return await VPNGate();
-    },
     'getVpnList': async (event, source) => {
         if (source === 'OPL') {
             const vpnList = await OPL();
@@ -60,10 +81,6 @@ const handlers = {
         }
     },
     'getISPs': async (event, ips) => {
-        // const cache = await readCache();
-        // const results = await Promise.all(ips.map((ip: string) => getIPInfo(ip, cache)));
-        // await writeCache(cache); // On écrit le cache une seule fois à la fin
-        // return results;
         const results = await bulkIpLookup(ips);
         return results.map((result) => ({
             country: result.country,

@@ -43,7 +43,7 @@ async function getListsScriptFn() {
 
     const pages = Array.from(document.querySelectorAll('.pagination .page-link[page-data]'))
         .filter(el => !isNaN(parseInt((el as HTMLElement).innerText)));
-    const lastPage = parseInt((pages[pages.length - 1] as HTMLElement).innerText);
+    const lastPage = !configs.devMode ? parseInt((pages[pages.length - 1] as HTMLElement).innerText) : 1;
     const results = await Promise.all(
         Array.from({ length: lastPage }, (_, i) => fetchPage((i + 1).toString()))
     );
@@ -86,18 +86,19 @@ function getVpnListHTML(): Promise<string> {
     });
 }
 
-interface VpnServer {
+interface OPLVpnServer {
     ip: string;
     country: string;
+    download_url: string;
     city: string;
     response_time: string;
     isp: string;
     last_check: string;
 }
 
-function parseVpnList(html: string): { servers: VpnServer[]; countries: { [k: string]: string } } {
+function parseVpnList(html: string): { servers: OPLVpnServer[]; countries: { [k: string]: string } } {
     const $ = load(html);
-    const servers: VpnServer[] = [];
+    const servers: OPLVpnServer[] = [];
     const countries: { [k: string]: string } = {};
 
     $("tr").each((i, el) => {
@@ -106,8 +107,9 @@ function parseVpnList(html: string): { servers: VpnServer[]; countries: { [k: st
         if (!ip) return;
         const cells = $(el).find("td");
         const [country, city = ""] = $(cells[1]).text().trim().split(",").map(s => s.trim());
-        const server: VpnServer = {
+        const server: OPLVpnServer = {
             ip,
+            download_url: "https://openproxylist.com/" + $(cells[0]).find("a").attr("href") || "",
             country,
             city,
             response_time: $(cells[2]).text().trim(),
@@ -121,7 +123,7 @@ function parseVpnList(html: string): { servers: VpnServer[]; countries: { [k: st
     return { servers, countries };
 }
 
-export async function getVpnList(): Promise<{ servers: VpnServer[]; countries: { [k: string]: string } }> {
+export async function getVpnList(): Promise<{ servers: OPLVpnServer[]; countries: { [k: string]: string } }> {
     try {
         console.log("Fetching VPN list HTML from OPL");
         const html = await getVpnListHTML();
