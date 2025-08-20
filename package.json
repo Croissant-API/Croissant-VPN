@@ -12,7 +12,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "electron-transpile": "tsc --project electron-app/tsconfig.json",
-    "build:preload": "tsc src/preload.ts --outDir dist"
+    "build:preload": "tsc electron-app/src/preload.ts --outDir electron-app/dist"
   },
   "repository": {
     "type": "git",
