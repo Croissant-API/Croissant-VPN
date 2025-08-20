@@ -1,8 +1,10 @@
 import { app, BrowserWindow } from 'electron';
 import path from 'path';
 
-import { getVpnList } from './api/VPNGATE-getVpnList.js'; // Ensure this import matches the correct casing
-getVpnList().then(console.log); // For debugging, remove in production
+import { getVpnList as VPNGate } from './api/VPNGATE-getVpnList.js'; // Ensure this import matches the correct casing
+import { getVpnList as OPL } from './api/OPL-getVpnList.js'; // Ensure this import matches the correct casing
+OPL().then(res=>console.log(res.servers.length)); // For debugging, remove in production
+// getVpnList().then(console.log); // For debugging, remove in production
 // const { webServer } = require('./webServer'); // Uncomment if you have a web server module
 
 import { fileURLToPath } from 'url';
@@ -24,4 +26,4 @@ function createWindow() {
   // mainWindow.webContents.openDevTools();
 }
 
-app.whenReady().then(createWindow);
+// app.whenReady().then(createWindow);
