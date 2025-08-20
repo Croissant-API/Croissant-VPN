@@ -5,24 +5,19 @@ import { dirname, join, basename, extname } from 'path';
 let currentVpnProcess = null;
 let currentIp = null;
 function convertOvpnConfig(config) {
-   
     const supportedCiphers = [
         'AES-128-CBC',
         'AES-128-GCM',
         'AES-256-CBC',
         'AES-256-GCM'
     ].join(':');
-   
     let convertedConfig = config;
-   
     convertedConfig = convertedConfig.replace(/^tls-version.*$/gm, '');
-   
     const additionalConfig = `
 tls-version-min 1.0
 tls-version-max 1.2
 data-ciphers ${supportedCiphers}
 `;
-   
     return convertedConfig.replace(/^(\s*cipher\s+([^\s]+).*)$/gim, (match, fullLine) => `${fullLine}${additionalConfig}`);
 }
 async function writeConvertedConfigFile(originalPath, convertedContent) {
@@ -32,7 +27,6 @@ async function writeConvertedConfigFile(originalPath, convertedContent) {
             mkdirSync(dir, { recursive: true });
     }
     catch (e) {
-       
     }
     const base = basename(originalPath, extname(originalPath));
     const outName = `${base}-legacy.ovpn`;
@@ -48,7 +42,6 @@ function runOpenVpnConfig(ip, filePath) {
         let isConnecting = false;
         let isConnected = false;
         try {
-           
             await new Promise((checkFile) => {
                 const maxAttempts = 10;
                 let attempts = 0;
@@ -85,36 +78,29 @@ function runOpenVpnConfig(ip, filePath) {
             console.log(`Running OpenVPN with command: ${cmd} ${args.join(' ')}`);
             currentVpnProcess = spawn(cmd, args, { stdio: 'pipe' });
             currentIp = ip;
-           
             currentVpnProcess.stdout?.on('data', (data) => {
                 const output = data.toString();
-               
                 if (output.includes('Attempting to establish TCP connection')) {
                     isConnecting = true;
                 }
-               
                 if (output.includes('TCP connection established')) {
                     isConnecting = false;
                     if (timeoutId) {
                         clearTimeout(timeoutId);
                     }
                 }
-               
                 if (output.includes('Timers: ping')) {
                     isConnected = true;
                     if (globalTimeout) {
                         clearTimeout(globalTimeout);
                     }
                     console.log('VPN connection established successfully');
-                   
                 }
                 console.log(output.trim());
             });
-           
             currentVpnProcess.stderr?.on('data', (data) => {
                 console.error(data.toString().trim());
             });
-           
             globalTimeout = setTimeout(() => {
                 if (!isConnected && currentVpnProcess) {
                     console.log('Global connection timeout reached');
@@ -134,16 +120,13 @@ function runOpenVpnConfig(ip, filePath) {
                         require('fs').unlinkSync(filePath);
                     }
                     catch (e) {
-                       
                     }
                 }
-               
                 if (isConnected) {
                     currentIp = null;
                     resolve(0);
                 }
                 else {
-                   
                     currentIp = null;
                     resolve(1);
                 }
@@ -151,7 +134,6 @@ function runOpenVpnConfig(ip, filePath) {
             });
         }
         catch (error) {
-           
         }
     });
 }
@@ -171,7 +153,6 @@ export function disconnectFromOpenVpn() {
     });
 }
 export async function connectToLegacyOpenVpn(ip, url) {
-   
     await disconnectFromOpenVpn();
     if (url.startsWith('data:text/opvn;base64,')) {
         const base64Content = url.split(',')[1];
@@ -196,10 +177,8 @@ export function getVpnStatus() {
             resolve(false);
             return;
         }
-       
         try {
             if (typeof currentVpnProcess.pid === 'number') {
-               
                 resolve(currentIp || false);
             }
             else {

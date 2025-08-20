@@ -38,7 +38,6 @@ export async function bulkIpLookup(ips, chunkSize = 100) {
     const cache = await readCache();
     const uncachedIps = [];
     const ipIndexMap = {};
-   
     ips.forEach((ip, idx) => {
         if (!cache[ip]) {
             uncachedIps.push(ip);
@@ -48,7 +47,6 @@ export async function bulkIpLookup(ips, chunkSize = 100) {
         ipIndexMap[ip].push(idx);
     });
     let newResults = {};
-   
     for (let i = 0; i < uncachedIps.length; i += chunkSize) {
         const chunk = uncachedIps.slice(i, i + chunkSize);
         if (chunk.length === 0)
@@ -62,16 +60,13 @@ export async function bulkIpLookup(ips, chunkSize = 100) {
             throw new Error(`API error: ${res.status} ${res.statusText}`);
         }
         const data = await res.json();
-       
         chunk.forEach((ip, idx) => {
             cache[ip] = data[idx];
             newResults[ip] = data[idx];
         });
     }
-   
     if (Object.keys(newResults).length > 0) {
         await writeCache(cache);
     }
-   
     return ips.map(ip => cache[ip]);
 }

@@ -47,12 +47,10 @@ function getVpnListHTML() {
             show: false,
             webPreferences: {
                 contextIsolation: true,
-               
                 webSecurity: true,
                 allowRunningInsecureContent: false
             }
         });
-       
         win.webContents.session.webRequest.onHeadersReceived(({ responseHeaders }, callback) => {
             if (responseHeaders) {
                 delete responseHeaders['content-security-policy'];
@@ -65,7 +63,6 @@ function getVpnListHTML() {
                 }
             });
         });
-       
         win.webContents.session.webRequest.onBeforeRequest({ urls: ["*://*/*.js", "*://*/*.ads*", "*://*/*ad*"] }, (details, cb) => {
             if (/ads|doubleclick|googlesyndication|adservice|adserver/.test(details.url))
                 return cb({ cancel: true });

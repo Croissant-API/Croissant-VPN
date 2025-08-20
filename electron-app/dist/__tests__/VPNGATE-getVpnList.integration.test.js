@@ -1,9 +1,7 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { getVpnList } from '../api/VPNGATE-getVpnList';
 describe('getVpnList (integration)', () => {
-   
     jest.setTimeout(20000);
-   
     const runLive = !!process.env.RUN_LIVE_TESTS;
     (runLive ? it : it.skip)('fetches and parses live VPNGate data', async () => {
         const result = await getVpnList();

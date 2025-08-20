@@ -37,11 +37,9 @@ const handlers = {
         if (VPNConfigs.length > 0) {
             return VPNConfigs;
         }
-       
         if (pendingConfigPromise) {
             return pendingConfigPromise;
         }
-       
         pendingConfigPromise = new Promise((resolve) => {
             const OPLListPromise = OPL();
             const VPNGateListPromise = VPNGate();
@@ -77,7 +75,6 @@ const handlers = {
         });
         return pendingConfigPromise;
     },
-   
     'connectVPN': async (event, ip, configUrl) => {
         try {
             const exitCode = await connectToLegacyOpenVpn(ip, configUrl);
@@ -126,9 +123,6 @@ function createWindow() {
         icon: path.join(decodeURI(__dirname), "..", "..", "public", 'icons', 'favicon.ico')
     });
     mainWindow.maximize();
-    mainWindow.setMenuBarVisibility(false);
-
-   
     mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
         callback({
             responseHeaders: {
@@ -148,6 +142,9 @@ function createWindow() {
     }
     else {
         mainWindow.loadFile('build/index.html');
+    }
+    if (configs.devMode) {
+        mainWindow.webContents.openDevTools();
     }
 }
 app.whenReady().then(createWindow);
