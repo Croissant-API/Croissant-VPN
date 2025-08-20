@@ -27,17 +27,16 @@ async function readCache() {
     }
 }
 async function writeCache(cache) {
-    console.log("Writing IP info cache to disk");
     await fs.writeFile(cachePath, JSON.stringify(cache, null, 2), "utf-8");
 }
 export async function getIPInfo(ip, cache) {
     cache = cache || await readCache();
     if (cache[ip]) {
         console.log(`IP info for ${ip} loaded from cache`);
-        return cache[ip];
+        // return cache[ip];
     }
     const apiUrl = `http://ip-api.com/json/${ip}?fields=country,city,isp,query,lat,lon,timezone,as&lang=en`;
-    console.log(`Fetching IP info for ${ip} from ${apiUrl}`);
+    // console.log(`Fetching IP info for ${ip} from ${apiUrl}`);
     try {
         const response = await fetch(apiUrl, {
             headers: {
