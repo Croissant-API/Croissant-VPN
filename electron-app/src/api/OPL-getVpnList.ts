@@ -63,13 +63,13 @@ function getVpnListHTML(): Promise<string> {
             show: false, 
             webPreferences: { 
                 contextIsolation: true,
-                // Add these settings to modify CSP
+               
                 webSecurity: true,
                 allowRunningInsecureContent: false
             } 
         });
 
-        // Add CSP headers
+       
         win.webContents.session.webRequest.onHeadersReceived(({ responseHeaders }, callback) => {
             if (responseHeaders) {
                 delete responseHeaders['content-security-policy'];
@@ -83,7 +83,7 @@ function getVpnListHTML(): Promise<string> {
             });
         });
 
-        // Keep existing request blocking
+       
         win.webContents.session.webRequest.onBeforeRequest(
             { urls: ["*://*/*.js", "*://*/*.ads*", "*://*/*ad*"] },
             (details, cb) => {

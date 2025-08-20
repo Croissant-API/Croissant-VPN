@@ -43,7 +43,7 @@ export async function bulkIpLookup(ips: string[], chunkSize = 100) {
   const uncachedIps: string[] = [];
   const ipIndexMap: Record<string, number[]> = {};
 
-  // Préparer la map pour gérer les doublons d'IP dans la liste
+ 
   ips.forEach((ip, idx) => {
     if (!cache[ip]) {
       uncachedIps.push(ip);
@@ -53,7 +53,7 @@ export async function bulkIpLookup(ips: string[], chunkSize = 100) {
   });
 
   let newResults: Record<string, any> = {};
-  // Bulk uniquement sur les IPs non en cache
+ 
   for (let i = 0; i < uncachedIps.length; i += chunkSize) {
     const chunk = uncachedIps.slice(i, i + chunkSize);
     if (chunk.length === 0) continue;
@@ -66,17 +66,17 @@ export async function bulkIpLookup(ips: string[], chunkSize = 100) {
       throw new Error(`API error: ${res.status} ${res.statusText}`);
     }
     const data = await res.json();
-    // data est un tableau dans le même ordre que chunk
+   
     chunk.forEach((ip, idx) => {
       cache[ip] = data[idx];
       newResults[ip] = data[idx];
     });
   }
-  // Écrire le cache si on a ajouté des IPs
+ 
   if (Object.keys(newResults).length > 0) {
     await writeCache(cache);
   }
-  // Reconstituer la liste des résultats dans l'ordre d'origine
+ 
   return ips.map(ip => cache[ip]);
 }
 

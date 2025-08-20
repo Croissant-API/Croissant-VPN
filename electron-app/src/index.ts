@@ -1,8 +1,8 @@
 import { app, BrowserWindow } from 'electron';
 import path from 'path';
 
-import { getVpnList as VPNGate } from './api/VPNGATE-getVpnList.js'; // Ensure this import matches the correct casing
-import { getVpnList as OPL } from './api/OPL-getVpnList.js'; // Ensure this import matches the correct casing
+import { getVpnList as VPNGate } from './api/VPNGATE-getVpnList.js';
+import { getVpnList as OPL } from './api/OPL-getVpnList.js';
 
 import { ipcMain } from 'electron';
 
@@ -46,14 +46,14 @@ const handlers: { [key: string]: Function } = {
       return VPNConfigs;
     }
 
-    // Si une promesse est déjà en cours, retourner celle-ci
+   
     if (pendingConfigPromise) {
       return pendingConfigPromise;
     }
 
-    // Créer une nouvelle promesse et la stocker
+   
     pendingConfigPromise = new Promise((resolve) => {
-      const OPLListPromise = OPL(); // Ensure this import matches the correct casing
+      const OPLListPromise = OPL();
       const VPNGateListPromise = VPNGate();
 
       Promise.all([OPLListPromise, VPNGateListPromise]).then(([opl, vpngate]) => {
@@ -79,18 +79,18 @@ const handlers: { [key: string]: Function } = {
             };
           });
           VPNConfigs = servers;
-          pendingConfigPromise = null; // Réinitialiser la promesse en cours
+          pendingConfigPromise = null;
           resolve(servers);
         });
       }).catch((error) => {
-        pendingConfigPromise = null; // Réinitialiser en cas d'erreur
+        pendingConfigPromise = null;
         throw error;
       });
     });
 
     return pendingConfigPromise;
   },
-  // Ajout des nouveaux handlers
+ 
   'connectVPN': async (event: any, ip:string, configUrl: string) => {
     try {
       const exitCode = await connectToLegacyOpenVpn(ip ,configUrl);
@@ -134,14 +134,14 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
-      preload: path.join(decodeURI(__dirname), 'preload.js') // Chemin absolu vers le preload script
+      preload: path.join(decodeURI(__dirname), 'preload.js')
     },
-    icon: path.join(decodeURI(__dirname), "..", "..", "public", 'icons', 'favicon.ico') // Chemin absolu vers l'icône
+    icon: path.join(decodeURI(__dirname), "..", "..", "public", 'icons', 'favicon.ico')
   });
 
-  mainWindow.maximize(); // Maximiser la fenêtre si configuré
+  mainWindow.maximize();
 
-  // Set CSP headers
+ 
   mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
     callback({
       responseHeaders: {

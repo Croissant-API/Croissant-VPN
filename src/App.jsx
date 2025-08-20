@@ -45,10 +45,10 @@ function MapCenter({ server }) {
     if (server?.lat && server?.lon) {
       map.setView(
         [parseFloat(server.lat), parseFloat(server.lon)],
-        12, // zoom level
+        12,
         {
           animate: true,
-          duration: 1, // animation duration in seconds
+          duration: 1,
         }
       );
     }
@@ -75,7 +75,7 @@ function App() {
     }
   };
 
-  // Ajouter un effet pour vérifier périodiquement le statut
+ 
   useEffect(() => {
     const checkStatus = async () => {
       try {
@@ -83,7 +83,7 @@ function App() {
         if (!status.connected && connectedServer) {
           setConnectedServer(null);
         } else if (status.connected && (!connectedServer || status.ip !== selectedServer?.ip)) {
-          // Mettre à jour le serveur connecté si l'IP ne correspond pas au serveur sélectionné
+         
           const matchingServer = configs.find(s => s.ip === status.connected);
           setConnectedServer(matchingServer || null);
         }
@@ -92,13 +92,13 @@ function App() {
       }
     };
 
-    // Vérifier toutes les 5 secondes
+   
     const interval = setInterval(checkStatus, 5000);
 
-    // Vérifier immédiatement au montage
+   
     checkStatus();
 
-    // Nettoyer l'intervalle au démontage
+   
     return () => clearInterval(interval);
   }, [connectedServer, selectedServer, configs]);
 
@@ -130,7 +130,7 @@ function App() {
 
   const handleCityChange = (city) => {
     setSelectedCity(city);
-    // Select first server of the selected city
+   
     const firstServerInCity = configs.find(
       (server) =>
         server.country.toLowerCase().replace(/ /g, "_") === selectedCountry &&
@@ -139,7 +139,7 @@ function App() {
     handleServerSelect(firstServerInCity || null);
   };
 
-  // Get unique cities for selected country
+ 
   const getCitiesForCountry = () => {
     return [
       ...new Set(
@@ -155,7 +155,7 @@ function App() {
     ].sort();
   };
 
-  // Get servers for selected city
+ 
   const getServersForCity = () => {
     return configs
       .filter(
@@ -221,7 +221,7 @@ function App() {
     const newCountry = event.target.value;
     setSelectedCountry(newCountry);
 
-    // Select first server of the selected country
+   
     if (newCountry) {
       const firstServer = configs.find(
         (server) =>
@@ -234,7 +234,7 @@ function App() {
   };
 
   const getCountryCode = (countryName) => {
-    // Table de conversion pour les cas spéciaux
+   
     const specialCases = {
       united_states: "US",
       united_kingdom: "GB",
@@ -246,8 +246,8 @@ function App() {
       taiwan: "TW",
       china: "CN",
       japan: "JP",
-      sweden: "SE", // Ajout du code pour la Suède
-      // Ajoutez d'autres cas spéciaux ici
+      sweden: "SE",
+     
     };
 
     const code =

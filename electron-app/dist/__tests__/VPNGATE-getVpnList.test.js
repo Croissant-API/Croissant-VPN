@@ -15,7 +15,7 @@ describe('getVpnList', () => {
             end: jest.fn(),
         };
         jest.spyOn(http, 'get').mockImplementation((url, options, callback) => {
-            // Support both (url, callback) and (url, options, callback) signatures
+           
             const cb = typeof options === 'function' ? options : callback;
             process.nextTick(() => {
                 if (cb)
