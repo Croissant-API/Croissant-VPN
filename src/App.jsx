@@ -62,6 +62,7 @@ function App() {
   const [selectedCity, setSelectedCity] = useState("");
   const [selectedServer, setSelectedServer] = useState(null);
   const [countries, setCountries] = useState({});
+  const [connectedServer, setConnectedServer] = useState(null);
 
   const handleServerSelect = (server) => {
     setSelectedServer(server);
@@ -69,6 +70,32 @@ function App() {
       const countryKey = server.country.toLowerCase().replace(/ /g, "_");
       setSelectedCountry(countryKey);
       setSelectedCity(server.city || "Unknown City");
+    }
+  };
+
+  const handleConnect = async () => {
+    if (selectedServer) {
+      try {
+        if (!connectedServer) {
+          console.log("Connecting to:", selectedServer.ip);
+          const result = await window.api.connectVPN(selectedServer.download_url);
+          if (result.success) {
+            setConnectedServer(selectedServer);
+          } else {
+            console.error("Connection failed:", result.error);
+          }
+        } else {
+          console.log("Disconnecting from:", connectedServer.ip);
+          const result = await window.api.disconnectVPN();
+          if (result.success) {
+            setConnectedServer(null);
+          } else {
+            console.error("Disconnection failed:", result.error);
+          }
+        }
+      } catch (error) {
+        console.error("VPN operation failed:", error);
+      }
     }
   };
 
@@ -130,12 +157,6 @@ function App() {
       }
     });
   }, []);
-
-  const handleConnect = () => {
-    if (selectedServer) {
-      console.log("Download URL:", selectedServer.download_url);
-    }
-  };
 
   const handleCountryChange = (event) => {
     const newCountry = event.target.value;
@@ -330,8 +351,14 @@ function App() {
             onClick={handleConnect}
             disabled={!selectedServer}
             className="connect-button"
+            sx={{
+              backgroundColor: connectedServer ? '#d32f2f' : undefined,
+              '&:hover': {
+                backgroundColor: connectedServer ? '#aa2424' : undefined
+              }
+            }}
           >
-            Connect
+            {connectedServer ? 'DISCONNECT' : 'CONNECT'}
           </Button>
         </Paper>
       </Box>

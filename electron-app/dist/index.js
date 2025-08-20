@@ -8,6 +8,7 @@ import { bulkIpLookup } from './api/getIPInfo.js';
 const require = createRequire(import.meta.url);
 const configs = require("./configs.json");
 import { URL } from 'url';
+import { connectToLegacyOpenVpn, disconnectFromOpenVpn } from './api/legacyOpenVpn.js';
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
 let VPNConfigs = [];
 let pendingConfigPromise = null;
@@ -75,6 +76,26 @@ const handlers = {
             });
         });
         return pendingConfigPromise;
+    },
+    'connectVPN': async (event, configUrl) => {
+        try {
+            const result = await connectToLegacyOpenVpn(configUrl);
+            return { success: result === 0 };
+        }
+        catch (error) {
+            console.error('VPN connection error:', error);
+            return { success: false, error: error.message };
+        }
+    },
+    'disconnectVPN': async () => {
+        try {
+            await disconnectFromOpenVpn();
+            return { success: true };
+        }
+        catch (error) {
+            console.error('VPN disconnection error:', error);
+            return { success: false, error: error.message };
+        }
     }
 };
 // Register all handlers
@@ -82,7 +103,6 @@ for (const [channel, handler] of Object.entries(handlers)) {
     ipcMain.handle(channel, (event, ...args) => handler(event, ...args));
 }
 function createWindow() {
-    console.log(path.join(decodeURI(__dirname), "..", "..", "public", 'icons', 'favicon.ico'));
     const mainWindow = new BrowserWindow({
         ...configs.mainWindow,
         webPreferences: {

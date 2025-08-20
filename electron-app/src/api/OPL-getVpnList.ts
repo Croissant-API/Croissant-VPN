@@ -131,7 +131,7 @@ function parseVpnList(html: string): { servers: OPLVpnServer[]; countries: { [k:
         const [country, city = ""] = $(cells[1]).text().trim().split(",").map(s => s.trim());
         const server: OPLVpnServer = {
             ip,
-            download_url: "https://openproxylist.com/" + $(cells[0]).find("a").attr("href") || "",
+            download_url: "https://openproxylist.com" + $(cells[0]).find("a").attr("href") || "",
             country,
             city,
             response_time: $(cells[2]).text().trim(),
