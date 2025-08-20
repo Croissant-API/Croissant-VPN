@@ -9,6 +9,7 @@ import {
   CssBaseline,
   Paper,
   Typography,
+  LinearProgress,
 } from "@mui/material";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -58,6 +59,7 @@ function MapCenter({ server }) {
 
 function App() {
   const [configs, setConfigs] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedCountry, setSelectedCountry] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
   const [selectedServer, setSelectedServer] = useState(null);
@@ -168,22 +170,52 @@ function App() {
 
   useEffect(() => {
     console.log("Fetching VPN configurations...");
-    window.api.getConfigs().then((data) => {
-      setConfigs(data);
+    setIsLoading(true);
+    window.api.getConfigs()
+      .then((data) => {
+        setConfigs(data);
 
-      const countryMap = data.reduce((acc, server) => {
-        const countryKey = server.country.toLowerCase().replace(/ /g, "_");
-        acc[countryKey] = server.country;
-        return acc;
-      }, {});
+        const countryMap = data.reduce((acc, server) => {
+          const countryKey = server.country.toLowerCase().replace(/ /g, "_");
+          acc[countryKey] = server.country;
+          return acc;
+        }, {});
 
-      setCountries(countryMap);
+        setCountries(countryMap);
 
-      if (data.length > 0) {
-        handleServerSelect(data[0]);
-      }
-    });
+        if (data.length > 0) {
+          handleServerSelect(data[0]);
+        }
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
   }, []);
+
+  if (isLoading) {
+    return (
+      <ThemeProvider theme={darkTheme}>
+        <CssBaseline />
+        <Box
+          sx={{
+            height: '100vh',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'background.default'
+          }}
+        >
+          <Typography variant="h5" color="primary" gutterBottom>
+            Loading VPN Configurations...
+          </Typography>
+          <Box sx={{ width: '200px' }}>
+            <LinearProgress />
+          </Box>
+        </Box>
+      </ThemeProvider>
+    );
+  }
 
   const handleCountryChange = (event) => {
     const newCountry = event.target.value;

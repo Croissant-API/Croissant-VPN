@@ -91,15 +91,6 @@ function runOpenVpnConfig(ip, filePath) {
                 // Détecter le début d'une tentative de connexion TCP
                 if (output.includes('Attempting to establish TCP connection')) {
                     isConnecting = true;
-                    // timeoutId = setTimeout(() => {
-                    //     if (isConnecting && currentVpnProcess) {
-                    //         console.log('TCP connection timeout reached');
-                    //         currentVpnProcess.kill();
-                    //         currentVpnProcess = null;
-                    //         currentIp = null;
-                    //         resolve(1);
-                    //     }
-                    // }, CONNECTION_TIMEOUT * 1000);
                 }
                 // Réinitialiser le timeout si la connexion TCP est établie
                 if (output.includes('TCP connection established')) {

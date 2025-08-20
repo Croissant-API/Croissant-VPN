@@ -125,7 +125,9 @@ function createWindow() {
         },
         icon: path.join(decodeURI(__dirname), "..", "..", "public", 'icons', 'favicon.ico') // Chemin absolu vers l'icône
     });
-    mainWindow.maximize(); // Maximiser la fenêtre si configuré
+    mainWindow.maximize();
+    mainWindow.setMenuBarVisibility(false);
+
     // Set CSP headers
     mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
         callback({
@@ -146,9 +148,6 @@ function createWindow() {
     }
     else {
         mainWindow.loadFile('build/index.html');
-    }
-    if (configs.devMode) {
-        mainWindow.webContents.openDevTools();
     }
 }
 app.whenReady().then(createWindow);
