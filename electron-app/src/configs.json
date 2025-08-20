@@ -1,0 +1,16 @@
+{
+  "mainWindow": {
+    "width": 600,
+    "height": 800,
+    "webPreferences": {
+      "nodeIntegration": true,
+      "contextIsolation": false
+    }
+  },
+  "oplConstants": {
+    "site_key": "6LepNaEaAAAAAMcfZb4shvxaVWulaKUfjhOxOHRS",
+    "base_url": "https://openproxylist.com/openvpn/"
+  },
+  "devMode": true,
+  "ipInfoUserAgent": "curl/7.68.0"
+}

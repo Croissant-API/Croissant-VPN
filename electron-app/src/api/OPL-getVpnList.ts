@@ -1,6 +1,10 @@
 import { BrowserWindow } from "electron";
 import { load } from "cheerio";
 
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const configs = require("../configs.json");
+
 declare global {
     interface Window {
         grecaptcha: {
@@ -8,9 +12,6 @@ declare global {
         };
     }
 }
-
-const SITE_KEY = "6LepNaEaAAAAAMcfZb4shvxaVWulaKUfjhOxOHRS";
-const getListURL = "https://openproxylist.com/openvpn/";
 
 function sleep(ms: number) {
     return new Promise(res => setTimeout(res, ms));
@@ -21,7 +22,7 @@ async function getListsScriptFn() {
     await sleep(1000);
 
     const fetchPage = async (page: string) => {
-        const token = await window.grecaptcha.execute(SITE_KEY, { action: "homepage" });
+        const token = await window.grecaptcha.execute(configs.oplConstants.site_key, { action: "homepage" });
         return fetch("https://openproxylist.com/get-list.html", {
             headers: {
                 "Content-Type": "application/x-www-form-urlencoded",
@@ -31,7 +32,7 @@ async function getListsScriptFn() {
                 "Sec-Fetch-Mode": "navigate",
                 "Sec-Fetch-Site": "same-origin",
             },
-            referrer: getListURL,
+            referrer: configs.oplConstants.base_url,
             body: `g-recaptcha-response=${token}&response=&sort=sortlast&dataType=openvpn&page=${page}`,
             method: "POST",
             mode: "cors",
@@ -50,8 +51,7 @@ async function getListsScriptFn() {
 }
 
 const getListsScript = `
-    const SITE_KEY = "${SITE_KEY}";
-    const getListURL = "${getListURL}";
+    const configs = ${JSON.stringify(configs)};
     ${sleep.toString()}
     ${getListsScriptFn.toString()}
     getListsScriptFn();
@@ -70,7 +70,7 @@ function getVpnListHTML(): Promise<string> {
                 cb({});
             }
         );
-        win.loadURL(getListURL);
+        win.loadURL(configs.oplConstants.base_url);
         win.webContents.once("did-finish-load", async () => {
             try {
                 console.log("Executing script to fetch VPN list HTML");
