@@ -82,6 +82,7 @@ for (const [channel, handler] of Object.entries(handlers)) {
     ipcMain.handle(channel, (event, ...args) => handler(event, ...args));
 }
 function createWindow() {
+    console.log(path.join(decodeURI(__dirname), "..", "..", "public", 'icons', 'favicon.ico'));
     const mainWindow = new BrowserWindow({
         ...configs.mainWindow,
         webPreferences: {
@@ -90,7 +91,8 @@ function createWindow() {
             nodeIntegration: false,
             sandbox: true,
             preload: path.join(decodeURI(__dirname), 'preload.js') // Chemin absolu vers le preload script
-        }
+        },
+        icon: path.join(decodeURI(__dirname), "..", "..", "public", 'icons', 'favicon.ico') // Chemin absolu vers l'icône
     });
     // Set CSP headers
     mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {

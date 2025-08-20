@@ -106,7 +106,8 @@ function createWindow() {
       nodeIntegration: false,
       sandbox: true,
       preload: path.join(decodeURI(__dirname), 'preload.js') // Chemin absolu vers le preload script
-    }
+    },
+    icon: path.join(decodeURI(__dirname), "..", "..", "public", 'icons', 'favicon.ico') // Chemin absolu vers l'icône
   });
 
   // Set CSP headers
