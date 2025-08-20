@@ -2,7 +2,7 @@ import { mkdtempSync, writeFileSync, mkdirSync, chmodSync, existsSync, rmSync } 
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { spawnSync } from 'child_process';
-import { afterAll, beforeAll, describe, expect } from '@jest/globals';
+import { afterAll, beforeAll, describe, expect, it } from '@jest/globals';
 
 // Guarded integration test: only run when RUN_LEGACY_INTEGRATION is set
 const runLive = !!process.env.RUN_LEGACY_INTEGRATION;
