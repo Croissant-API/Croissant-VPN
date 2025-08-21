@@ -1,5 +1,7 @@
 # Croissant-VPN
 
+<img width="1798" height="761" alt="image" src="https://github.com/user-attachments/assets/1781f072-40fb-4f95-af65-3915173919b9" />
+
 Croissant-VPN is a cross-platform VPN client that automates the process of finding, selecting, and connecting to free VPN servers (such as those from VPNGate) using OpenVPN. It features a modern Electron-based desktop app and a React-based frontend.
 
 ## Features
