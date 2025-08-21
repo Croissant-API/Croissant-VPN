@@ -5,7 +5,7 @@
   "main": "electron-app/dist/index.js",
   "scripts": {
     "test": "jest --passWithNoTests",
-    "electron-start": "npm run electron-transpile; electron-forge start electron-app/dist/index.js",
+    "electron-start": "npm run electron-transpile && electron-forge start electron-app/dist/index.js",
     "electron-package": "electron-forge package",
     "electron-make": "electron-forge make",
     "dev": "vite",
