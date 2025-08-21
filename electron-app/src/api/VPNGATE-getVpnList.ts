@@ -71,6 +71,8 @@ export function getVpnList(): Promise<VpnListResult> {
             });
         });
 
+        console.log("Fetching VPN list from VPNGate API");
+
         req.on("error", () => {
             reject({ servers: [], countries: {} });
         });

@@ -1,6 +1,6 @@
 import { spawn } from 'child_process';
 import { writeFileSync, existsSync, mkdirSync } from 'fs';
-import { dirname, join, basename, extname } from 'path';
+import path, { dirname, join, basename, extname } from 'path';
 // Variable globale pour stocker le processus OpenVPN actif
 let currentVpnProcess = null;
 let currentIp = null;
@@ -13,10 +13,15 @@ function convertOvpnConfig(config) {
     ].join(':');
     let convertedConfig = config;
     convertedConfig = convertedConfig.replace(/^tls-version.*$/gm, '');
+    // Supprimer toutes les directives route et redirect-gateway
+    convertedConfig = convertedConfig.replace(/^route.*$/gim, '');
+    convertedConfig = convertedConfig.replace(/^redirect-gateway.*$/gim, '');
+    // Ajouter redirect-gateway bypass-dhcp
     const additionalConfig = `
 tls-version-min 1.0
 tls-version-max 1.2
 data-ciphers ${supportedCiphers}
+redirect-gateway bypass-dhcp
 `;
     return convertedConfig.replace(/^(\s*cipher\s+([^\s]+).*)$/gim, (match, fullLine) => `${fullLine}${additionalConfig}`);
 }
@@ -62,19 +67,38 @@ function runOpenVpnConfig(ip, filePath) {
                 checkExists();
             });
             console.log(`Config file verified at: ${filePath}`);
-            const cmd = 'sudo';
-            const args = [
-                'openvpn',
-                '--config', filePath,
-                '--connect-retry-max', '1',
-                '--remote-cert-tls', 'server',
-                '--auth-nocache',
-                '--nobind',
-                '--persist-key',
-                '--persist-tun',
-                '--ping', '5',
-                '--ping-restart', '10'
-            ];
+            console.log(`Connecting to VPN with IP: ${ip}, platform: ${process.platform}`);
+            let cmd;
+            let args;
+            if (process.platform.startsWith('win')) {
+                cmd = path.resolve('windows-exec', 'openvpn.exe');
+                args = [
+                    '--config', filePath,
+                    '--connect-retry-max', '1',
+                    '--remote-cert-tls', 'server',
+                    '--auth-nocache',
+                    '--nobind',
+                    '--persist-key',
+                    '--persist-tun',
+                    '--ping', '5',
+                    '--ping-restart', '10'
+                ];
+            }
+            else {
+                cmd = 'sudo';
+                args = [
+                    'openvpn',
+                    '--config', filePath,
+                    '--connect-retry-max', '1',
+                    '--remote-cert-tls', 'server',
+                    '--auth-nocache',
+                    '--nobind',
+                    '--persist-key',
+                    '--persist-tun',
+                    '--ping', '5',
+                    '--ping-restart', '10'
+                ];
+            }
             console.log(`Running OpenVPN with command: ${cmd} ${args.join(' ')}`);
             currentVpnProcess = spawn(cmd, args, { stdio: 'pipe' });
             currentIp = ip;

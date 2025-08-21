@@ -47,11 +47,9 @@ const handlers: { [key: string]: Function } = {
       return VPNConfigs;
     }
 
-
     if (pendingConfigPromise) {
       return pendingConfigPromise;
     }
-
 
     pendingConfigPromise = new Promise((resolve) => {
       const OPLListPromise = OPL();
@@ -84,6 +82,7 @@ const handlers: { [key: string]: Function } = {
           resolve(servers);
         });
       }).catch((error) => {
+        console.log(error);
         pendingConfigPromise = null;
         throw error;
       });
@@ -135,9 +134,9 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
-      preload: path.join(decodeURI(__dirname), 'preload.js')
+      preload: path.resolve('electron-app', 'dist', 'preload.js')
     },
-    icon: path.join(decodeURI(__dirname), "..", "..", "public", 'icons', 'favicon.ico')
+    icon: path.resolve("public", 'icons', 'favicon.ico')
   });
 
   mainWindow.maximize();
@@ -162,7 +161,7 @@ function createWindow() {
     mainWindow.loadURL('http://localhost:5173/');
   } else {
     // Fix: Use path.resolve to get the absolute path and handle special characters
-    const indexPath = path.resolve(decodeURI(__dirname), "..", 'build', 'index.html');
+    const indexPath = path.resolve('electron-app', 'build', 'index.html');
     if (!fs.existsSync(indexPath)) {
       console.error('Index file not found at:', indexPath);
       app.quit();
@@ -177,4 +176,24 @@ function createWindow() {
   // }
 }
 
-app.whenReady().then(createWindow);
+import isElevated from 'is-elevated';
+import sudo from 'sudo-prompt';
+
+(async () => {
+  if (!(await isElevated())) {
+    const execPath = process.execPath;
+    const scriptPath = path.resolve(process.argv[1]);
+    const args = process.argv.slice(2).join(' ');
+    const cmd = `"${execPath}" "${scriptPath}" ${args}`;
+    sudo.exec(cmd, { name: 'Croissant VPN' }, (error) => {
+      if (error) {
+        console.error('Échec de l\'élévation admin:', error);
+        process.exit(1);
+      }
+      process.exit(0);
+    });
+    return;
+  }
+
+  app.whenReady().then(createWindow);
+})();

@@ -1,13 +1,13 @@
 import { spawn, ChildProcess } from 'child_process';
 import { writeFileSync, existsSync, mkdirSync } from 'fs';
-import { dirname, join, basename, extname } from 'path';
+import path, { dirname, join, basename, extname } from 'path';
 
 // Variable globale pour stocker le processus OpenVPN actif
 let currentVpnProcess: ChildProcess | null = null;
 let currentIp: string | null = null;
 
 function convertOvpnConfig(config: string): string {
-   
+
     const supportedCiphers = [
         'AES-128-CBC',
         'AES-128-GCM',
@@ -15,20 +15,26 @@ function convertOvpnConfig(config: string): string {
         'AES-256-GCM'
     ].join(':');
 
-   
+
     let convertedConfig = config;
 
-   
+
     convertedConfig = convertedConfig.replace(/^tls-version.*$/gm, '');
 
-   
+
+    // Supprimer toutes les directives route et redirect-gateway
+    convertedConfig = convertedConfig.replace(/^route.*$/gim, '');
+    convertedConfig = convertedConfig.replace(/^redirect-gateway.*$/gim, '');
+
+    // Ajouter redirect-gateway bypass-dhcp
     const additionalConfig = `
 tls-version-min 1.0
 tls-version-max 1.2
 data-ciphers ${supportedCiphers}
+redirect-gateway bypass-dhcp
 `;
 
-   
+
     return convertedConfig.replace(/^(\s*cipher\s+([^\s]+).*)$/gim,
         (match, fullLine) => `${fullLine}${additionalConfig}`);
 }
@@ -38,7 +44,7 @@ async function writeConvertedConfigFile(originalPath: string, convertedContent: 
     try {
         if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
     } catch (e) {
-       
+
     }
 
     const base = basename(originalPath, extname(originalPath));
@@ -57,7 +63,7 @@ function runOpenVpnConfig(ip: string, filePath: string): Promise<number> {
         let isConnected = false;
 
         try {
-           
+
             await new Promise((checkFile) => {
                 const maxAttempts = 10;
                 let attempts = 0;
@@ -79,35 +85,54 @@ function runOpenVpnConfig(ip: string, filePath: string): Promise<number> {
             });
 
             console.log(`Config file verified at: ${filePath}`);
+            console.log(`Connecting to VPN with IP: ${ip}, platform: ${process.platform}`);
 
-            const cmd = 'sudo';
-            const args = [
-                'openvpn',
-                '--config', filePath,
-                '--connect-retry-max', '1',
-                '--remote-cert-tls', 'server',
-                '--auth-nocache',          
-                '--nobind',                
-                '--persist-key',           
-                '--persist-tun',           
-                '--ping', '5',            
-                '--ping-restart', '10'     
-            ];
+            let cmd;
+            let args;
+            if (process.platform.startsWith('win')) {
+                cmd = path.resolve('windows-exec', 'openvpn.exe');
+                args = [
+                    '--config', filePath,
+                    '--connect-retry-max', '1',
+                    '--remote-cert-tls', 'server',
+                    '--auth-nocache',
+                    '--nobind',
+                    '--persist-key',
+                    '--persist-tun',
+                    '--ping', '5',
+                    '--ping-restart', '10'
+                ];
+            }
+            else {
+                cmd = 'sudo';
+                args = [
+                    'openvpn',
+                    '--config', filePath,
+                    '--connect-retry-max', '1',
+                    '--remote-cert-tls', 'server',
+                    '--auth-nocache',
+                    '--nobind',
+                    '--persist-key',
+                    '--persist-tun',
+                    '--ping', '5',
+                    '--ping-restart', '10'
+                ];
+            }
 
             console.log(`Running OpenVPN with command: ${cmd} ${args.join(' ')}`);
             currentVpnProcess = spawn(cmd, args, { stdio: 'pipe' });
             currentIp = ip;
 
-           
+
             currentVpnProcess.stdout?.on('data', (data: Buffer) => {
                 const output = data.toString();
 
-               
+
                 if (output.includes('Attempting to establish TCP connection')) {
                     isConnecting = true;
                 }
 
-               
+
                 if (output.includes('TCP connection established')) {
                     isConnecting = false;
                     if (timeoutId) {
@@ -115,25 +140,25 @@ function runOpenVpnConfig(ip: string, filePath: string): Promise<number> {
                     }
                 }
 
-               
+
                 if (output.includes('Timers: ping')) {
                     isConnected = true;
                     if (globalTimeout) {
                         clearTimeout(globalTimeout);
                     }
                     console.log('VPN connection established successfully');
-                   
+
                 }
 
                 console.log(output.trim());
             });
 
-           
+
             currentVpnProcess.stderr?.on('data', (data: Buffer) => {
                 console.error(data.toString().trim());
             });
 
-           
+
             globalTimeout = setTimeout(() => {
                 if (!isConnected && currentVpnProcess) {
                     console.log('Global connection timeout reached');
@@ -152,16 +177,16 @@ function runOpenVpnConfig(ip: string, filePath: string): Promise<number> {
                     try {
                         require('fs').unlinkSync(filePath);
                     } catch (e) {
-                       
+
                     }
                 }
 
-               
+
                 if (isConnected) {
                     currentIp = null;
                     resolve(0);
                 } else {
-                   
+
                     currentIp = null;
                     resolve(1);
                 }
@@ -169,7 +194,7 @@ function runOpenVpnConfig(ip: string, filePath: string): Promise<number> {
             });
 
         } catch (error) {
-           
+
         }
     });
 }
@@ -192,7 +217,7 @@ export function disconnectFromOpenVpn(): Promise<void> {
 }
 
 export async function connectToLegacyOpenVpn(ip: string, url: string): Promise<number> {
-   
+
     await disconnectFromOpenVpn();
 
     if (url.startsWith('data:text/opvn;base64,')) {
@@ -221,10 +246,10 @@ export function getVpnStatus(): Promise<boolean | string> {
             return;
         }
 
-       
+
         try {
             if (typeof currentVpnProcess.pid === 'number') {
-               
+
                 resolve(currentIp || false);
             } else {
                 currentVpnProcess = null;

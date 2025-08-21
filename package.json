@@ -8,6 +8,7 @@
     "electron-start": "npm run electron-transpile && electron-forge start electron-app/dist/index.js",
     "electron-package": "electron-forge package",
     "electron-make": "electron-forge make",
+    "simple-start": "electron electron-app/dist/index.js --unhandled-rejections=strict --trace-warnings",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
@@ -38,10 +39,12 @@
     "country-flag-icons": "^1.5.19",
     "electron-squirrel-startup": "^1.0.1",
     "http": "^0.0.1-security",
+    "is-elevated": "^4.0.0",
     "leaflet": "^1.9.4",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "react-leaflet": "^5.0.0"
+    "react-leaflet": "^5.0.0",
+    "sudo-prompt": "^9.2.1"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.8.3",

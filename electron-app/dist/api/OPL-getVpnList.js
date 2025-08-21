@@ -115,7 +115,9 @@ export async function getVpnList() {
         console.log("Fetching VPN list HTML from OPL");
         const html = await getVpnListHTML();
         console.log("Fetched VPN list HTML successfully");
-        return parseVpnList(html);
+        const parsed = parseVpnList(html);
+        console.log("Parsed VPN list successfully");
+        return parsed;
     }
     catch (e) {
         console.error("Error fetching VPN list:", e);

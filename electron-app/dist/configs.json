@@ -14,6 +14,6 @@
     "site_key": "6LepNaEaAAAAAMcfZb4shvxaVWulaKUfjhOxOHRS",
     "base_url": "https://openproxylist.com/openvpn/"
   },
-  "devMode": false,
+  "devMode": true,
   "ipInfoUserAgent": "curl/7.68.0"
 }
