@@ -161,7 +161,7 @@ function createWindow() {
     mainWindow.loadURL('http://localhost:5173/');
   } else {
     // Fix: Use path.resolve to get the absolute path and handle special characters
-    const indexPath = path.resolve('electron-app', 'build', 'index.html');
+    const indexPath = path.resolve('build', 'index.html');
     if (!fs.existsSync(indexPath)) {
       console.error('Index file not found at:', indexPath);
       app.quit();
@@ -203,9 +203,9 @@ import sudo from 'sudo-prompt';
       if (stderr) console.error('Élévation stderr:', stderr);
       if (error) {
         console.error('Erreur élévation:', error);
-        // process.exit(1); // Pour debug, commente cette ligne
+        process.exit(1); // Pour debug, commente cette ligne
       }
-      // process.exit(0); // Pour debug, commente cette ligne
+      process.exit(0); // Pour debug, commente cette ligne
     });
     return;
   }

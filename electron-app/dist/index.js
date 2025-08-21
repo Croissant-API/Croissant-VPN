@@ -145,7 +145,7 @@ function createWindow() {
     }
     else {
         // Fix: Use path.resolve to get the absolute path and handle special characters
-        const indexPath = path.resolve('electron-app', 'build', 'index.html');
+        const indexPath = path.resolve('build', 'index.html');
         if (!fs.existsSync(indexPath)) {
             console.error('Index file not found at:', indexPath);
             app.quit();
@@ -161,35 +161,36 @@ function createWindow() {
 import isElevated from 'is-elevated';
 import sudo from 'sudo-prompt';
 (async () => {
+    console.log('Début du bootstrap Croissant VPN');
     if (!(await isElevated())) {
-        // Detect if running via electron-forge or as a packaged app
         const isPackaged = app.isPackaged;
         let execPath;
         let args = [];
         if (isPackaged) {
-            // Running as packaged app (built .exe)
             execPath = process.execPath;
             args = [];
         }
         else {
-            // Running via electron-forge (dev mode)
             execPath = process.execPath;
-            // process.argv[1] is usually the entry point script
             if (process.argv[1]) {
                 args = [process.argv[1], ...process.argv.slice(2)];
             }
         }
-        // Build the command for sudo-prompt
         const cmd = `"${execPath}"${args.length ? ' ' + args.map(a => `"${a}"`).join(' ') : ''}`;
-        console.log('Elevating with command:', cmd);
-        sudo.exec(cmd, { name: 'Croissant VPN' }, (error) => {
+        console.log('Tentative d\'élévation avec la commande:', cmd);
+        sudo.exec(cmd, { name: 'Croissant VPN', cwd: process.cwd() }, (error, stdout, stderr) => {
+            if (stdout)
+                console.log('Élévation stdout:', stdout);
+            if (stderr)
+                console.error('Élévation stderr:', stderr);
             if (error) {
-                console.error('Échec de l\'élévation admin:', error);
-                process.exit(1);
+                console.error('Erreur élévation:', error);
+                process.exit(1); // Pour debug, commente cette ligne
             }
-            process.exit(0);
+            process.exit(0); // Pour debug, commente cette ligne
         });
         return;
     }
+    console.log('Élévation réussie ou non requise, lancement de la fenêtre...');
     app.whenReady().then(createWindow);
 })();
