@@ -8,7 +8,7 @@
     "test": "jest --passWithNoTests",
     "electron-start": "npm run electron-transpile && electron-forge start electron-app/dist/index.js",
     "electron-package": "electron-forge package",
-    "electron-make": "electron-forge make",
+    "electron-make": "electron-forge make && xcopy windows-exec out\\croissant-vpn-win32-x64\\resources\\windows-exec /e /i /h",
     "simple-start": "electron electron-app/dist/index.js --unhandled-rejections=strict --trace-warnings",
     "dev": "vite",
     "build": "vite build",

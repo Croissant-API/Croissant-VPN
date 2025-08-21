@@ -5,11 +5,7 @@ module.exports = {
   packagerConfig: {
     asar: true,
     extraResources: [
-      {
-        from: 'windows-exec',
-        to: 'windows-exec',
-        filter: ['**/*']
-      }
+      "windows-exec"
     ]
   },
   rebuildConfig: {},
