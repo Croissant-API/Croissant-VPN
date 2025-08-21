@@ -4,8 +4,16 @@ import path from "path";
 import { fileURLToPath } from "url";
 const require = createRequire(import.meta.url);
 const configs = require("../configs.json");
+import os from "os";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const cachePath = path.resolve(__dirname, "../ipCache.json");
+let cachePath;
+if (__dirname.includes(".asar")) {
+    // If running from an ASAR archive, use the system temp directory
+    cachePath = path.join(os.tmpdir(), "ipCache.json");
+}
+else {
+    cachePath = path.resolve(__dirname, "../ipCache.json");
+}
 // Ensure cache file exists
 (async () => {
     try {
