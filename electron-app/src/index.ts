@@ -180,20 +180,36 @@ import isElevated from 'is-elevated';
 import sudo from 'sudo-prompt';
 
 (async () => {
+  console.log('Début du bootstrap Croissant VPN');
   if (!(await isElevated())) {
-    const execPath = process.execPath;
-    const scriptPath = path.resolve(process.argv[1]);
-    const args = process.argv.slice(2).join(' ');
-    const cmd = `"${execPath}" "${scriptPath}" ${args}`;
-    sudo.exec(cmd, { name: 'Croissant VPN' }, (error) => {
-      if (error) {
-        console.error('Échec de l\'élévation admin:', error);
-        process.exit(1);
+    const isPackaged = app.isPackaged;
+    let execPath: string;
+    let args: string[] = [];
+
+    if (isPackaged) {
+      execPath = process.execPath;
+      args = [];
+    } else {
+      execPath = process.execPath;
+      if (process.argv[1]) {
+        args = [process.argv[1], ...process.argv.slice(2)];
       }
-      process.exit(0);
+    }
+
+    const cmd = `"${execPath}"${args.length ? ' ' + args.map(a => `"${a}"`).join(' ') : ''}`;
+    console.log('Tentative d\'élévation avec la commande:', cmd);
+    sudo.exec(cmd, { name: 'Croissant VPN', cwd: process.cwd() } as any, (error, stdout, stderr) => {
+      if (stdout) console.log('Élévation stdout:', stdout);
+      if (stderr) console.error('Élévation stderr:', stderr);
+      if (error) {
+        console.error('Erreur élévation:', error);
+        // process.exit(1); // Pour debug, commente cette ligne
+      }
+      // process.exit(0); // Pour debug, commente cette ligne
     });
     return;
   }
 
+  console.log('Élévation réussie ou non requise, lancement de la fenêtre...');
   app.whenReady().then(createWindow);
 })();

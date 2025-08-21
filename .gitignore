@@ -46,3 +46,4 @@ yarn-error.log*
 
 electron-app/dist/ipCache.json
 *.ovpn
+out

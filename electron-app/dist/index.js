@@ -162,10 +162,26 @@ import isElevated from 'is-elevated';
 import sudo from 'sudo-prompt';
 (async () => {
     if (!(await isElevated())) {
-        const execPath = process.execPath;
-        const scriptPath = path.resolve(process.argv[1]);
-        const args = process.argv.slice(2).join(' ');
-        const cmd = `"${execPath}" "${scriptPath}" ${args}`;
+        // Detect if running via electron-forge or as a packaged app
+        const isPackaged = app.isPackaged;
+        let execPath;
+        let args = [];
+        if (isPackaged) {
+            // Running as packaged app (built .exe)
+            execPath = process.execPath;
+            args = [];
+        }
+        else {
+            // Running via electron-forge (dev mode)
+            execPath = process.execPath;
+            // process.argv[1] is usually the entry point script
+            if (process.argv[1]) {
+                args = [process.argv[1], ...process.argv.slice(2)];
+            }
+        }
+        // Build the command for sudo-prompt
+        const cmd = `"${execPath}"${args.length ? ' ' + args.map(a => `"${a}"`).join(' ') : ''}`;
+        console.log('Elevating with command:', cmd);
         sudo.exec(cmd, { name: 'Croissant VPN' }, (error) => {
             if (error) {
                 console.error('Échec de l\'élévation admin:', error);
