@@ -1,6 +1,7 @@
 import { spawn, ChildProcess } from 'child_process';
-import { writeFileSync, existsSync, mkdirSync } from 'fs';
+import { writeFileSync, existsSync, mkdirSync, copyFileSync } from 'fs';
 import path, { dirname, join, basename, extname } from 'path';
+import os from 'os';
 
 // Variable globale pour stocker le processus OpenVPN actif
 let currentVpnProcess: ChildProcess | null = null;
@@ -90,7 +91,14 @@ function runOpenVpnConfig(ip: string, filePath: string): Promise<number> {
             let cmd;
             let args;
             if (process.platform.startsWith('win')) {
-                cmd = path.resolve('windows-exec', 'openvpn.exe');
+                let openvpnPath = path.resolve('windows-exec', 'openvpn.exe');
+
+                // Si le fichier n'existe pas, tente dans resourcesPath (cas packagé)
+                if (!existsSync(openvpnPath)) {
+                    openvpnPath = path.join(process.resourcesPath, 'windows-exec', 'openvpn.exe');
+                }
+                
+                cmd = openvpnPath;
                 args = [
                     '--config', filePath,
                     '--connect-retry-max', '1',

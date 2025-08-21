@@ -71,7 +71,12 @@ function runOpenVpnConfig(ip, filePath) {
             let cmd;
             let args;
             if (process.platform.startsWith('win')) {
-                cmd = path.resolve('windows-exec', 'openvpn.exe');
+                let openvpnPath = path.resolve('windows-exec', 'openvpn.exe');
+                // Si le fichier n'existe pas, tente dans resourcesPath (cas packagé)
+                if (!existsSync(openvpnPath)) {
+                    openvpnPath = path.join(process.resourcesPath, 'windows-exec', 'openvpn.exe');
+                }
+                cmd = openvpnPath;
                 args = [
                     '--config', filePath,
                     '--connect-retry-max', '1',

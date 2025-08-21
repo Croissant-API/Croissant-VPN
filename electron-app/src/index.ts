@@ -127,6 +127,21 @@ for (const [channel, handler] of Object.entries(handlers)) {
 
 
 function createWindow() {
+  // Gestion des chemins pour preload et icône compatibles asar
+  let preloadPath = path.resolve('electron-app', 'dist', 'preload.js');
+  if (!fs.existsSync(preloadPath)) {
+    preloadPath = path.join(process.resourcesPath, 'electron-app', 'dist', 'preload.js');
+    if (!fs.existsSync(preloadPath)) {
+      preloadPath = path.join(process.resourcesPath, 'app.asar', 'electron-app', 'dist', 'preload.js');
+    }
+  }
+  let iconPath = path.resolve('public', 'icons', 'favicon.ico');
+  if (!fs.existsSync(iconPath)) {
+    iconPath = path.join(process.resourcesPath, 'public', 'icons', 'favicon.ico');
+    if (!fs.existsSync(iconPath)) {
+      iconPath = path.join(process.resourcesPath, 'app.asar', 'public', 'icons', 'favicon.ico');
+    }
+  }
   const mainWindow = new BrowserWindow({
     ...configs.mainWindow,
     webPreferences: {
@@ -134,9 +149,9 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
-      preload: path.resolve('electron-app', 'dist', 'preload.js')
+      preload: preloadPath
     },
-    icon: path.resolve("public", 'icons', 'favicon.ico')
+    icon: iconPath
   });
 
   mainWindow.maximize();
@@ -160,8 +175,16 @@ function createWindow() {
   if (configs.devMode) {
     mainWindow.loadURL('http://localhost:5173/');
   } else {
-    // Fix: Use path.resolve to get the absolute path and handle special characters
-    const indexPath = path.resolve('build', 'index.html');
+    // Supporte build local et build packagé (asar)
+    let indexPath = path.resolve('build', 'index.html');
+    if (!fs.existsSync(indexPath)) {
+      // Si non trouvé, tente dans le dossier resources (asar ou non)
+      indexPath = path.join(process.resourcesPath, 'app.asar', 'build', 'index.html');
+      if (!fs.existsSync(indexPath)) {
+        // Si toujours pas trouvé, tente sans app.asar (certains packagers extraient le build à la racine de resources)
+        indexPath = path.join(process.resourcesPath, 'build', 'index.html');
+      }
+    }
     if (!fs.existsSync(indexPath)) {
       console.error('Index file not found at:', indexPath);
       app.quit();
@@ -170,7 +193,6 @@ function createWindow() {
     console.log('Loading file from:', indexPath);
     mainWindow.loadFile(indexPath);
   }
-
   // if (configs.devMode) {
   //   mainWindow.webContents.openDevTools();
   // }
