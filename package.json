@@ -1,6 +1,6 @@
 {
   "name": "croissant-vpn",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "An OpenVPN (and soon L2TP) wrapper, and OVPN configuration scraper to get a large panel of IPs for free. ",
   "main": "electron-app/dist/index.js",
   "author": "fox3000foxy",
