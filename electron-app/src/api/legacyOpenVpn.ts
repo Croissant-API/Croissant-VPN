@@ -1,67 +1,20 @@
 import { spawn, ChildProcess } from 'child_process';
 import { writeFileSync, existsSync, mkdirSync, copyFileSync } from 'fs';
 import path, { dirname, join, basename, extname } from 'path';
-import os from 'os';
 
 // Variable globale pour stocker le processus OpenVPN actif
 let currentVpnProcess: ChildProcess | null = null;
 let currentIp: string | null = null;
 
-function convertOvpnConfig(config: string): string {
-
-    const supportedCiphers = [
-        'AES-128-CBC',
-        'AES-128-GCM',
-        'AES-256-CBC',
-        'AES-256-GCM'
-    ].join(':');
-
-
-    let convertedConfig = config;
-
-
-    convertedConfig = convertedConfig.replace(/^tls-version.*$/gm, '');
-
-
-    // Supprimer toutes les directives route et redirect-gateway
-    convertedConfig = convertedConfig.replace(/^route.*$/gim, '');
-    convertedConfig = convertedConfig.replace(/^redirect-gateway.*$/gim, '');
-
-    // Ajouter redirect-gateway bypass-dhcp
-    const additionalConfig = `
-tls-version-min 1.0
-tls-version-max 1.2
-data-ciphers ${supportedCiphers}
-redirect-gateway bypass-dhcp
-`;
-
-
-    return convertedConfig.replace(/^(\s*cipher\s+([^\s]+).*)$/gim,
-        (match, fullLine) => `${fullLine}${additionalConfig}`);
-}
-
-async function writeConvertedConfigFile(originalPath: string, convertedContent: string): Promise<string> {
-    const dir = dirname(originalPath) || '.';
-    try {
-        if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-    } catch (e) {
-
-    }
-
-    const base = basename(originalPath, extname(originalPath));
-    const outName = `${base}-legacy.ovpn`;
-    const outPath = join(dir, outName);
-    await writeFileSync(outPath, convertedContent, 'utf8');
-    return outPath;
-}
-
-function runOpenVpnConfig(ip: string, filePath: string): Promise<number> {
+function runOpenVpnConfig(ip: string): Promise<number> {
     return new Promise(async (resolve) => {
         const HANDSHAKE_TIMEOUT = 10;
         let timeoutId: NodeJS.Timeout | undefined = undefined;
         let globalTimeout: NodeJS.Timeout | undefined = undefined;
-        let isConnecting = false;
         let isConnected = false;
+
+        const filePath = path.resolve('OVPN-Configs-scraper', 'data', 'configs', `${ip}.ovpn`);
+        let isConnecting = false;
 
         try {
 
@@ -224,27 +177,10 @@ export function disconnectFromOpenVpn(): Promise<void> {
     });
 }
 
-export async function connectToLegacyOpenVpn(ip: string, url: string): Promise<number> {
+export async function connectToLegacyOpenVpn(ip: string): Promise<number> {
 
     await disconnectFromOpenVpn();
-
-    if (url.startsWith('data:text/opvn;base64,')) {
-        const base64Content = url.split(',')[1];
-        const originalConfig = Buffer.from(base64Content, 'base64').toString('utf8');
-        const convertedConfig = convertOvpnConfig(originalConfig);
-        const outPath = await writeConvertedConfigFile('temp', convertedConfig);
-
-        console.log(`Converted config written to: ${outPath}`);
-        return runOpenVpnConfig(ip, outPath);
-    } else {
-        const originalConfig = await fetch(url)
-            .then(response => response.text())
-        const convertedConfig = convertOvpnConfig(originalConfig);
-        const outPath = await writeConvertedConfigFile('temp', convertedConfig);
-
-        console.log(`Converted config written to: ${outPath}`);
-        return runOpenVpnConfig(ip, outPath);
-    }
+    return runOpenVpnConfig(ip);
 }
 
 export function getVpnStatus(): Promise<boolean | string> {
@@ -254,10 +190,8 @@ export function getVpnStatus(): Promise<boolean | string> {
             return;
         }
 
-
         try {
             if (typeof currentVpnProcess.pid === 'number') {
-
                 resolve(currentIp || false);
             } else {
                 currentVpnProcess = null;

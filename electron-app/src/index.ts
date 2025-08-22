@@ -1,19 +1,23 @@
-import { app, BrowserWindow } from 'electron';
+import { simpleGit } from 'simple-git';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'path';
 import fs from 'fs';
-
-import { getVpnList as VPNGate } from './api/VPNGATE-getVpnList.js';
-import { getVpnList as OPL } from './api/OPL-getVpnList.js';
-
-import { ipcMain } from 'electron';
-
+import { connectToLegacyOpenVpn, disconnectFromOpenVpn, getVpnStatus } from './api/legacyOpenVpn.js';
 import { createRequire } from "module";
-import { bulkIpLookup } from './api/getIPInfo.js';
 const require = createRequire(import.meta.url);
 const configs = require("./configs.json");
-import { URL } from 'url';
-import { connectToLegacyOpenVpn, disconnectFromOpenVpn, getVpnStatus } from './api/legacyOpenVpn.js';
-const __dirname = path.dirname(new URL(import.meta.url).pathname);
+
+const repoPath = path.resolve('OVPN-Configs-scraper');
+const git = simpleGit();
+
+if (!fs.existsSync(repoPath)) {
+  console.log('Clonage du dépôt OVPN-Configs-scraper...');
+  await git.clone('https://github.com/fox3000foxy/OVPN-Configs-scraper.git', repoPath, ['--depth', '1']);
+} else {
+  console.log('Mise à jour du dépôt OVPN-Configs-scraper...');
+  const gitRepo = simpleGit(repoPath);
+  await gitRepo.pull('origin', 'main');
+}
 
 declare global {
   interface Window {
@@ -22,78 +26,31 @@ declare global {
 }
 
 let VPNConfigs: object[] = []
-let pendingConfigPromise: Promise<any> | null = null;
 
 const handlers: { [key: string]: Function } = {
-  'getVpnList': async (event: any, source: string) => {
-    if (source === 'OPL') {
-      const vpnList = await OPL();
-      return vpnList;
-    } else if (source === 'VPNGate') {
-      const vpnList = await VPNGate();
-      return vpnList;
-    } else if (source === "All") {
-      const [oplList, vpnGateList] = await Promise.all([OPL(), VPNGate()]);
-      return { opl: oplList, vpnGate: vpnGateList };
-    } else {
-      return { error: 'Unknown source' };
-    }
-  },
-  'getISPs': async (event: any, ips: string[]) => {
-    return await bulkIpLookup(ips);
-  },
-  'getConfigs': () => {
+  'getConfigs': async () => {
     if (VPNConfigs.length > 0) {
       return VPNConfigs;
     }
 
-    if (pendingConfigPromise) {
-      return pendingConfigPromise;
+    try {
+      // const configsModule = await import(path.resolve(repoPath, 'data', 'ipCache.json'));
+      // VPNConfigs = configsModule.default || configsModule;
+      // return VPNConfigs;
+      const ipCachePath = path.join(repoPath, 'data', 'ipCache.json');
+      const ipCacheContent = fs.readFileSync(ipCachePath, 'utf-8');
+      const ipCache = JSON.parse(ipCacheContent);
+      VPNConfigs = Object.values(ipCache);
+      return VPNConfigs;
+    } catch (error) {
+      console.error('Erreur lors de la récupération des configs:', error);
+      return [];
     }
-
-    pendingConfigPromise = new Promise((resolve) => {
-      const OPLListPromise = OPL();
-      const VPNGateListPromise = VPNGate();
-
-      Promise.all([OPLListPromise, VPNGateListPromise]).then(([opl, vpngate]) => {
-        const oplServers = opl.servers.map((server: any) => ({ ...server, provider: 'OPL' }));
-        const vpngateServers = vpngate.servers.map((server: any) => ({ ...server, provider: 'VPNGate' }));
-        const allServers = [...oplServers, ...vpngateServers];
-        const allIps = allServers.map((server: any) => server.ip);
-
-        bulkIpLookup(allIps).then((isps: any[]) => {
-          const servers = allServers.map((server: any) => {
-            const ispInfo = isps.find((isp: any) => isp.query === server.ip) || {};
-            return {
-              ip: server.ip,
-              isp: ispInfo.isp || "",
-              country: ispInfo.country || "",
-              city: ispInfo.city || "",
-              lat: ispInfo.lat || "",
-              lon: ispInfo.lon || "",
-              timezone: ispInfo.timezone || "",
-              as: ispInfo.as || "",
-              provider: server.provider,
-              download_url: server.download_url || "data:text/opvn;base64," + server.openvpn_configdata_base64 || ""
-            };
-          });
-          VPNConfigs = servers;
-          pendingConfigPromise = null;
-          resolve(servers);
-        });
-      }).catch((error) => {
-        console.log(error);
-        pendingConfigPromise = null;
-        throw error;
-      });
-    });
-
-    return pendingConfigPromise;
   },
 
   'connectVPN': async (event: any, ip: string, configUrl: string) => {
     try {
-      const exitCode = await connectToLegacyOpenVpn(ip, configUrl);
+      const exitCode = await connectToLegacyOpenVpn(ip);
       return { success: exitCode === 0 };
     } catch (error) {
       console.error('VPN connection error:', error);
@@ -203,7 +160,8 @@ import sudo from 'sudo-prompt';
 
 (async () => {
   console.log('Début du bootstrap Croissant VPN');
-  if (!(await isElevated())) {
+  // L'élévation n'est requise que sous Windows
+  if (process.platform === 'win32' && !(await isElevated())) {
     const isPackaged = app.isPackaged;
     let execPath: string;
     let args: string[] = [];

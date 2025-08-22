@@ -39,6 +39,7 @@
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-leaflet": "^5.0.0",
+    "simple-git": "^3.28.0",
     "sudo-prompt": "^9.2.1"
   },
   "devDependencies": {

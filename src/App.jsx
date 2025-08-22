@@ -82,9 +82,9 @@ function App() {
         const status = await window.api.getVpnStatus();
         if (!status.connected && connectedServer) {
           setConnectedServer(null);
-        } else if (status.connected && (!connectedServer || status.ip !== selectedServer?.ip)) {
+        } else if (status.connected && (!connectedServer || status.query !== selectedServer?.query)) {
          
-          const matchingServer = configs.find(s => s.ip === status.connected);
+          const matchingServer = configs.find(s => s.query === status.connected);
           setConnectedServer(matchingServer || null);
         }
       } catch (error) {
@@ -106,15 +106,15 @@ function App() {
     if (selectedServer) {
       try {
         if (!connectedServer) {
-          console.log("Connecting to:", selectedServer.ip);
-          const result = await window.api.connectVPN(selectedServer.ip, selectedServer.download_url);
+          console.log("Connecting to:", selectedServer.query);
+          const result = await window.api.connectVPN(selectedServer.query, selectedServer.download_url);
           if (result.success) {
             setConnectedServer(selectedServer);
           } else {
             console.error("Connection failed:", result.error);
           }
         } else {
-          console.log("Disconnecting from:", connectedServer.ip);
+          console.log("Disconnecting from:", connectedServer.query);
           const result = await window.api.disconnectVPN();
           if (result.success) {
             setConnectedServer(null);
@@ -165,7 +165,7 @@ function App() {
               selectedCountry) &&
           (!selectedCity || (server.city || "Unknown City") === selectedCity)
       )
-      .sort((a, b) => a.ip.localeCompare(b.ip));
+      .sort((a, b) => a.query.localeCompare(b.query));
   };
 
   useEffect(() => {
@@ -174,6 +174,8 @@ function App() {
     window.api.getConfigs()
       .then((data) => {
         setConfigs(data);
+
+        console.log(`Fetched ${data.length} VPN configurations.`);
 
         const countryMap = data.reduce((acc, server) => {
           const countryKey = server.country.toLowerCase().replace(/ /g, "_");
@@ -262,7 +264,7 @@ function App() {
       <Box sx={{ height: "100vh", position: "relative" }}>
         <MapContainer
           center={[20, 0]}
-          zoom={2}
+          zoom={1.5}
           style={{ height: "100%", width: "100%" }}
         >
           <TileLayer
@@ -277,13 +279,13 @@ function App() {
                 position={[parseFloat(server.lat), parseFloat(server.lon)]}
                 icon={
                   selectedServer &&
-                  selectedServer.download_url === server.download_url
+                  selectedServer.query === server.query
                     ? selectedIcon
                     : defaultIcon
                 }
                 zIndexOffset={
                   selectedServer &&
-                  selectedServer.download_url === server.download_url
+                  selectedServer.query === server.query
                     ? 1000
                     : 0
                 }
@@ -291,22 +293,6 @@ function App() {
                   click: () => handleServerSelect(server),
                 }}
               >
-                <Popup>
-                  <div className="popup-content">
-                    <Typography variant="subtitle1" fontWeight="bold">
-                      {server.country}
-                    </Typography>
-                    {server.city && (
-                      <Typography variant="body2">
-                        City: {server.city}
-                      </Typography>
-                    )}
-                    <Typography variant="body2">IP: {server.ip}</Typography>
-                    {server.isp && (
-                      <Typography variant="body2">ISP: {server.isp}</Typography>
-                    )}
-                  </div>
-                </Popup>
               </Marker>
             ) : null
           )}
@@ -380,7 +366,7 @@ function App() {
             >
               {getServersForCity().map((server, index) => (
                 <MenuItem key={index} value={JSON.stringify(server)}>
-                  {server.ip}
+                  {server.query}
                 </MenuItem>
               ))}
             </Select>
@@ -411,7 +397,6 @@ function App() {
                     Lon: {selectedServer.lon}<br />
                     Lat: {selectedServer.lat}<br />
                     Timezone : {selectedServer.timezone || "Unknown"}<br />
-                    Provider: {selectedServer.provider || "Unknown"}<br />
                   </>
                 )}
               </Typography>
@@ -424,13 +409,13 @@ function App() {
             disabled={!selectedServer}
             className="connect-button"
             sx={{
-              backgroundColor: connectedServer?.ip === selectedServer?.ip ? '#d32f2f' : undefined,
+              backgroundColor: connectedServer?.query === selectedServer?.query ? '#d32f2f' : undefined,
               '&:hover': {
-                backgroundColor: connectedServer?.ip === selectedServer?.ip ? '#aa2424' : undefined
+                backgroundColor: connectedServer?.query === selectedServer?.query ? '#aa2424' : undefined
               }
             }}
           >
-            {connectedServer?.ip === selectedServer?.ip ? 'DISCONNECT' : 'CONNECT'}
+            {connectedServer?.query === selectedServer?.query ? 'DISCONNECT' : 'CONNECT'}
           </Button>
         </Paper>
       </Box>
