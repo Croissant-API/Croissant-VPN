@@ -27,10 +27,16 @@ const handlers = {
             // const configsModule = await import(path.resolve(repoPath, 'data', 'ipCache.json'));
             // VPNConfigs = configsModule.default || configsModule;
             // return VPNConfigs;
+            const ipsPath = path.join(repoPath, 'data', 'ips.json');
+            const ipsContent = fs.readFileSync(ipsPath, 'utf-8');
+            const ips = JSON.parse(ipsContent);
             const ipCachePath = path.join(repoPath, 'data', 'ipCache.json');
             const ipCacheContent = fs.readFileSync(ipCachePath, 'utf-8');
             const ipCache = JSON.parse(ipCacheContent);
-            VPNConfigs = Object.values(ipCache);
+            const filledIps = ips.map((ip) => {
+                return { ip, ...(ipCache[ip] || {}) };
+            });
+            VPNConfigs = filledIps;
             return VPNConfigs;
         }
         catch (error) {
