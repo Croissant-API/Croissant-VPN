@@ -11,10 +11,6 @@ module.exports = {
   rebuildConfig: {},
   makers: [
     {
-      name: '@electron-forge/maker-squirrel',
-      config: {},
-    },
-    {
       name: '@electron-forge/maker-zip',
       platforms: ['darwin'],
     },
@@ -32,8 +28,6 @@ module.exports = {
       name: '@electron-forge/plugin-auto-unpack-natives',
       config: {},
     },
-   
-   
     new FusesPlugin({
       version: FuseVersion.V1,
       [FuseV1Options.RunAsNode]: false,
