@@ -10,15 +10,6 @@ const configs = require("./configs.json");
 const repoPath = path.resolve('OVPN-Configs-scraper');
 const git = simpleGit();
 
-if (!fs.existsSync(repoPath)) {
-  console.log('Clonage du dépôt OVPN-Configs-scraper...');
-  await git.clone('https://github.com/fox3000foxy/OVPN-Configs-scraper.git', repoPath, ['--depth', '1']);
-} else {
-  console.log('Mise à jour du dépôt OVPN-Configs-scraper...');
-  const gitRepo = simpleGit(repoPath);
-  await gitRepo.pull('origin', 'main');
-}
-
 declare global {
   interface Window {
     [key: string]: any;
@@ -34,12 +25,20 @@ const handlers: { [key: string]: Function } = {
     }
 
     try {
-      // const configsModule = await import(path.resolve(repoPath, 'data', 'ipCache.json'));
-      // VPNConfigs = configsModule.default || configsModule;
-      // return VPNConfigs;
+      if (!fs.existsSync(repoPath)) {
+        console.log('Clonage du dépôt OVPN-Configs-scraper...');
+        await git.clone('https://github.com/fox3000foxy/OVPN-Configs-scraper.git', repoPath, ['--depth', '1']);
+      } else {
+        console.log('Mise à jour du dépôt OVPN-Configs-scraper...');
+        const gitRepo = simpleGit(repoPath);
+        await gitRepo.pull('origin', 'main');
+      }
+
       const ipsPath = path.join(repoPath, 'data', 'ips.json');
       const ipsContent = fs.readFileSync(ipsPath, 'utf-8');
       const ips = JSON.parse(ipsContent);
+
+      console.log(`Loaded ${ips.length} IPs from ips.json`);  
       
       const ipCachePath = path.join(repoPath, 'data', 'ipCache.json');
       const ipCacheContent = fs.readFileSync(ipCachePath, 'utf-8');
