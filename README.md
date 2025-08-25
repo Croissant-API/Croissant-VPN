@@ -1,3 +1,6 @@
+> [!CAUTION]
+> After realizing how the free configs might be log dangerous, and because of me who though that academics VPN were exempted of logs, this project is now archived. You can still use or download it for free if you don't mind about your data and just want to spoof your IP. Thanks y'all.
+
 # Croissant-VPN
 
 <img width="1798" height="761" alt="image" src="https://github.com/user-attachments/assets/1781f072-40fb-4f95-af65-3915173919b9" />
